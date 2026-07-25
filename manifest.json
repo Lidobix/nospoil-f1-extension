@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "NGA Spoiler Guard",
+  "version": "1.0.0",
+  "description": "Masque les articles F1 publiés après une séance que vous n'avez pas encore regardée sur motorsport.nextgen-auto.com.",
+  "permissions": ["storage"],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "NGA Spoiler Guard"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://motorsport.nextgen-auto.com/fr/*"],
+      "run_at": "document_start",
+      "all_frames": false,
+      "js": [
+        "src/zonedTime.js",
+        "src/frenchDate.js",
+        "src/storage.js",
+        "src/weekend.js",
+        "src/overlay.js",
+        "src/content.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["data/sessions.json"],
+      "matches": ["https://motorsport.nextgen-auto.com/*"]
+    }
+  ]
+}

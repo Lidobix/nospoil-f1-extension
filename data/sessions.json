@@ -1,0 +1,18 @@
+{
+  "_comment": "Horaires codés en dur pour le week-end en cours. Tous les horaires sont en UTC (suffixe Z) pour éviter toute ambiguïté été/hiver : le fuseau du site (Europe/Paris, même règle DST que Budapest) et celui de l'utilisateur sont recalculés dynamiquement par l'extension à partir de ces valeurs UTC.",
+  "weekend": {
+    "id": "2026-hungary",
+    "name": "Grand Prix de Hongrie 2026",
+    "circuit": "Hungaroring",
+    "season": 2026
+  },
+  "active_from_utc": "2026-07-21T00:00:00Z",
+  "active_until_utc": "2026-07-27T12:00:00Z",
+  "sessions": [
+    { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-07-24T11:30:00Z" },
+    { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-07-24T15:00:00Z" },
+    { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-07-25T10:30:00Z" },
+    { "key": "quali", "label": "Qualifications", "start_utc": "2026-07-25T14:00:00Z" },
+    { "key": "race", "label": "Course", "start_utc": "2026-07-26T13:00:00Z" }
+  ]
+}
