@@ -38,11 +38,21 @@ window.NGAGuard = window.NGAGuard || {};
     }
   }
 
+  // Détection par motif d'URL (",<id>.html") plutôt que par classes CSS : couvre
+  // toutes les zones de la page (grille "Actualité", "à la une", liens rapides
+  // EL1/EL2/.../Résultats...), pas seulement la grille principale.
+  const ARTICLE_HREF_RE = /,\d+\.html(?:[?#].*)?$/;
+
   function findCards() {
-    return Array.from(document.querySelectorAll(".grid.gap-3.mb-10 > a"));
+    const cards = Array.from(document.querySelectorAll("a[href]")).filter((a) =>
+      ARTICLE_HREF_RE.test(a.getAttribute("href") || "")
+    );
+    console.log("[NGA] findCards ->", cards.length, "lien(s) d'article trouvé(s)");
+    return cards;
   }
 
-  // null = date illisible (on masque par précaution plutôt que de prendre un risque de spoiler).
+  // null = date illisible ou absente (ex: tuiles "à la une" sans date affichée)
+  // -> on masque par précaution plutôt que de prendre un risque de spoiler.
   function cardPublishedMillis(cardEl) {
     const paragraphs = cardEl.querySelectorAll("p");
     if (!paragraphs.length) return null;
@@ -58,9 +68,17 @@ window.NGAGuard = window.NGAGuard || {};
   }
 
   function maskListingCards(cutoff) {
-    findCards().forEach((cardEl) => {
+    console.log("[NGA] maskListingCards, cutoff =", cutoff);
+    findCards().forEach((cardEl, i) => {
       const publishedMillis = cardPublishedMillis(cardEl);
-      if (publishedMillis === null || publishedMillis >= cutoff.cutoffUtcMillis) {
+      const shouldMask = publishedMillis === null || publishedMillis >= cutoff.cutoffUtcMillis;
+      console.log(
+        "[NGA] carte", i,
+        "publishedMillis =", publishedMillis,
+        publishedMillis ? new Date(publishedMillis).toISOString() : "(non parsé)",
+        "-> masquée =", shouldMask
+      );
+      if (shouldMask) {
         NGA.maskCard(cardEl, cutoff.label);
       }
     });
@@ -91,6 +109,7 @@ window.NGAGuard = window.NGAGuard || {};
     }
 
     let cutoff = await NGA.getCutoff(weekendData.weekend.id);
+    console.log("[NGA] weekend =", weekendData.weekend.id, "cutoff lu du storage =", cutoff);
 
     function openChooser() {
       stopSafetyTimer();
@@ -114,6 +133,7 @@ window.NGAGuard = window.NGAGuard || {};
 
       whenDomReady(() => {
         const articleMillis = articlePublishedMillis();
+        console.log("[NGA] applyCutoff, cutoff =", cutoff, "articleMillis =", articleMillis);
 
         if (articleMillis !== null) {
           if (articleMillis >= cutoff.cutoffUtcMillis) {

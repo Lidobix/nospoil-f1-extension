@@ -84,15 +84,32 @@ window.NGAGuard = window.NGAGuard || {};
         border-color: #e10600;
       }
       .nga-guard-masked {
+        position: relative !important;
         pointer-events: none;
-        opacity: 0.55;
-        filter: grayscale(1);
+      }
+      .nga-guard-masked > *:not(.nga-guard-mask-label) {
+        visibility: hidden !important;
       }
       .nga-guard-masked .nga-guard-mask-label {
-        display: block;
-        font-size: 12px;
+        visibility: visible !important;
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 8px;
+        background: repeating-linear-gradient(
+          45deg,
+          #1c222b,
+          #1c222b 10px,
+          #20262f 10px,
+          #20262f 20px
+        );
+        border: 1px dashed #3a4250;
+        border-radius: 6px;
         color: #8b93a1;
-        margin-top: 4px;
+        font-size: 12px;
         font-style: italic;
       }
     `;
