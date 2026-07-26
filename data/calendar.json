@@ -1,0 +1,145 @@
+[
+  {
+    "id": "2026-australia",
+    "name": "Grand Prix d'Australie 2026",
+    "circuit": "Albert Park Circuit",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-03-06T01:30:00Z" },
+      { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-03-06T05:00:00Z" },
+      { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-03-07T01:30:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-03-07T05:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-03-08T04:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-china",
+    "name": "Grand Prix de Chine 2026",
+    "circuit": "Shanghai International Circuit",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-03-13T03:30:00Z" },
+      { "key": "sprint_quali", "label": "Qualifications Sprint", "start_utc": "2026-03-13T07:30:00Z" },
+      { "key": "sprint", "label": "Course Sprint", "start_utc": "2026-03-14T03:00:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-03-14T07:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-03-15T07:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-japan",
+    "name": "Grand Prix du Japon 2026",
+    "circuit": "Suzuka International Racing Course",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-03-27T02:30:00Z" },
+      { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-03-27T06:00:00Z" },
+      { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-03-28T02:30:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-03-28T06:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-03-29T05:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-miami",
+    "name": "Grand Prix de Miami 2026",
+    "circuit": "Miami International Autodrome",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-05-01T16:00:00Z" },
+      { "key": "sprint_quali", "label": "Qualifications Sprint", "start_utc": "2026-05-01T20:30:00Z" },
+      { "key": "sprint", "label": "Course Sprint", "start_utc": "2026-05-02T16:00:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-05-02T20:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-05-03T17:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-canada",
+    "name": "Grand Prix du Canada 2026",
+    "circuit": "Circuit Gilles Villeneuve",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-05-22T16:30:00Z" },
+      { "key": "sprint_quali", "label": "Qualifications Sprint", "start_utc": "2026-05-22T20:30:00Z" },
+      { "key": "sprint", "label": "Course Sprint", "start_utc": "2026-05-23T16:00:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-05-23T20:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-05-24T20:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-monaco",
+    "name": "Grand Prix de Monaco 2026",
+    "circuit": "Circuit de Monaco",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-06-05T11:30:00Z" },
+      { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-06-05T15:00:00Z" },
+      { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-06-06T10:30:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-06-06T14:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-06-07T13:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-barcelona",
+    "name": "Grand Prix de Barcelone-Catalogne 2026",
+    "circuit": "Circuit de Barcelona-Catalunya",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-06-12T11:30:00Z" },
+      { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-06-12T15:00:00Z" },
+      { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-06-13T10:30:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-06-13T14:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-06-14T13:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-austria",
+    "name": "Grand Prix d'Autriche 2026",
+    "circuit": "Red Bull Ring",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-06-26T11:30:00Z" },
+      { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-06-26T15:00:00Z" },
+      { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-06-27T10:30:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-06-27T14:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-06-28T13:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-britain",
+    "name": "Grand Prix de Grande-Bretagne 2026",
+    "circuit": "Silverstone Circuit",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-07-03T11:30:00Z" },
+      { "key": "sprint_quali", "label": "Qualifications Sprint", "start_utc": "2026-07-03T15:30:00Z" },
+      { "key": "sprint", "label": "Course Sprint", "start_utc": "2026-07-04T11:00:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-07-04T15:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-07-05T14:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-belgium",
+    "name": "Grand Prix de Belgique 2026",
+    "circuit": "Circuit de Spa-Francorchamps",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-07-17T11:30:00Z" },
+      { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-07-17T15:00:00Z" },
+      { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-07-18T10:30:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-07-18T14:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-07-19T13:00:00Z" }
+    ]
+  },
+  {
+    "id": "2026-hungary",
+    "name": "Grand Prix de Hongrie 2026",
+    "circuit": "Hungaroring",
+    "season": 2026,
+    "sessions": [
+      { "key": "fp1", "label": "Essais Libres 1", "start_utc": "2026-07-24T11:30:00Z" },
+      { "key": "fp2", "label": "Essais Libres 2", "start_utc": "2026-07-24T15:00:00Z" },
+      { "key": "fp3", "label": "Essais Libres 3", "start_utc": "2026-07-25T10:30:00Z" },
+      { "key": "quali", "label": "Qualifications", "start_utc": "2026-07-25T14:00:00Z" },
+      { "key": "race", "label": "Course", "start_utc": "2026-07-26T13:00:00Z" }
+    ]
+  }
+]

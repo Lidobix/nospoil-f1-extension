@@ -131,8 +131,8 @@ window.NGAGuard = window.NGAGuard || {};
   // Les dates trouvées via un span sont à leur tour ajoutées à la mémoire, pour
   // que ce même article soit reconnu correctement s'il réapparaît ailleurs sans
   // date (ex: dans un autre article, en lien "à lire aussi").
-  async function maskArticleLinks(cutoff, weekendId) {
-    let cache = await NGA.getSpoilerCache(weekendId);
+  async function maskArticleLinks(cutoff) {
+    let cache = await NGA.getSpoilerCache();
     const learned = {};
     const cards = findCards();
 
@@ -149,7 +149,7 @@ window.NGAGuard = window.NGAGuard || {};
       const results = await Promise.all(Array.from(neededSourceUrls).map(fetchListingDates));
       const merged = Object.assign({}, ...results);
       if (Object.keys(merged).length) {
-        await NGA.mergeSpoilerCache(weekendId, merged);
+        await NGA.mergeSpoilerCache(merged);
         cache = Object.assign({}, cache, merged);
       }
     }
@@ -177,7 +177,7 @@ window.NGAGuard = window.NGAGuard || {};
     });
 
     if (Object.keys(learned).length) {
-      await NGA.mergeSpoilerCache(weekendId, learned);
+      await NGA.mergeSpoilerCache(learned);
     }
   }
 
@@ -192,29 +192,44 @@ window.NGAGuard = window.NGAGuard || {};
   }
 
   async function run() {
-    let weekendData;
+    let calendar;
     try {
-      weekendData = await NGA.loadWeekendData();
+      calendar = await NGA.loadCalendar();
     } catch (e) {
       reveal();
       return;
     }
 
-    if (!NGA.isWeekendActive(weekendData, Date.now())) {
-      reveal();
-      return;
-    }
-
-    const weekendId = weekendData.weekend.id;
-    let cutoff = await NGA.getCutoff(weekendId);
-    console.log("[NGA] weekend =", weekendId, "cutoff lu du storage =", cutoff);
+    const currentWeekend = NGA.findCurrentWeekend(calendar, Date.now());
+    let cutoff = await NGA.getCutoff();
+    console.log("[NGA] week-end courant =", currentWeekend.id, "cutoff lu du storage =", cutoff);
 
     function openChooser() {
       stopSafetyTimer();
-      NGA.showChooserOverlay(weekendData, async (chosen) => {
-        await NGA.setCutoff(weekendId, chosen);
-        cutoff = chosen;
-        applyCutoff();
+      NGA.showChooserOverlay(calendar, currentWeekend, cutoff, {
+        onPickSession: async (weekend, session) => {
+          const chosen = {
+            mode: "session",
+            weekendId: weekend.id,
+            label: weekend.name + " – " + session.label,
+            cutoffUtcMillis: Date.parse(session.start_utc),
+            savedAt: Date.now(),
+          };
+          await NGA.setCutoff(chosen);
+          cutoff = chosen;
+          applyCutoff();
+        },
+        onShowAll: async () => {
+          const chosen = { mode: "all", label: "Tout afficher", cutoffUtcMillis: null, savedAt: Date.now() };
+          await NGA.setCutoff(chosen);
+          cutoff = chosen;
+          applyCutoff();
+        },
+        onClear: async () => {
+          await NGA.clearCutoff();
+          cutoff = null;
+          applyCutoff();
+        },
       });
     }
 
@@ -244,24 +259,24 @@ window.NGAGuard = window.NGAGuard || {};
           // article réapparaîtra ailleurs sans date (ex: en lien "à lire aussi").
           const selfId = articleIdFromHref(window.location.href);
           if (selfId) {
-            await NGA.mergeSpoilerCache(weekendId, { [selfId]: articleMillis });
+            await NGA.mergeSpoilerCache({ [selfId]: articleMillis });
           }
 
           if (articleMillis >= cutoff.cutoffUtcMillis) {
             stopSafetyTimer();
-            NGA.showArticleBlockedOverlay(cutoff, weekendData, openChooser);
+            NGA.showArticleBlockedOverlay(cutoff, currentWeekend, openChooser);
             return;
           }
 
           // Article sûr : on masque quand même les liens "à lire aussi" de son
           // corps avant de révéler la page.
-          await maskArticleLinks(cutoff, weekendId);
+          await maskArticleLinks(cutoff);
           reveal();
           return;
         }
 
         if (findCards().length) {
-          await maskArticleLinks(cutoff, weekendId);
+          await maskArticleLinks(cutoff);
         }
         reveal();
       });
@@ -273,9 +288,8 @@ window.NGAGuard = window.NGAGuard || {};
     // sans nécessiter de rechargement.
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
-      const key = NGA.storageKey(weekendId);
-      if (!(key in changes)) return;
-      cutoff = changes[key].newValue || null;
+      if (!(NGA.CUTOFF_KEY in changes)) return;
+      cutoff = changes[NGA.CUTOFF_KEY].newValue || null;
       rearm();
       applyCutoff();
     });

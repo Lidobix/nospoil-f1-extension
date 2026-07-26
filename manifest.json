@@ -21,6 +21,7 @@
         "src/frenchDate.js",
         "src/storage.js",
         "src/weekend.js",
+        "src/cutoffUI.js",
         "src/overlay.js",
         "src/content.js"
       ]
@@ -28,7 +29,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["data/sessions.json"],
+      "resources": ["data/calendar.json"],
       "matches": ["https://motorsport.nextgen-auto.com/*"]
     }
   ]

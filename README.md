@@ -30,37 +30,41 @@ sur l'icône de rechargement de l'extension, puis recharge la page du site
 ## Utilisation
 
 1. Va sur `https://motorsport.nextgen-auto.com/fr/` (ou toute page du site).
-2. Si un week-end de GP est actif (voir `data/sessions.json`) et qu'aucun
-   réglage n'a encore été choisi pour ce week-end, un écran plein page
-   s'affiche et demande : *"Je n'ai pas encore vu : Essais Libres 1 / ... /
-   Qualifications / Course"* — choisis la première séance que tu n'as pas
-   encore regardée, ou "Tout afficher" pour désactiver le filtre.
+2. Si aucun réglage n'a encore été choisi, un écran plein page s'affiche et
+   demande, pour le week-end en cours : *"Je n'ai pas encore vu : Essais
+   Libres 1 / ... / Qualifications / Course"* — choisis la première séance
+   que tu n'as pas encore regardée, ou "Tout afficher" pour désactiver le
+   filtre.
 3. Une fois le choix fait :
    - Les news publiées **avant** le début de cette séance restent visibles
      normalement.
    - Les news publiées **à partir du début de cette séance** sont masquées
      (motif hachuré) dans les listes, et bloquées en plein écran si tu ouvres
      directement leur page.
+   - Ce réglage est **global** : si tu as plusieurs GP de retard, la coupure
+     s'applique en continu depuis cette date-là, sur toutes les pages, pas
+     seulement autour d'un week-end précis.
 4. Tu peux revoir ou changer ce réglage à tout moment via le popup de
    l'extension (clic sur son icône dans la barre d'outils) — le changement
-   s'applique immédiatement, sans recharger l'onglet déjà ouvert.
+   s'applique immédiatement, sans recharger l'onglet déjà ouvert. La popup
+   propose aussi un sélecteur pour choisir **n'importe quel week-end déjà
+   disputé** (pas seulement celui en cours) comme référence de coupure —
+   utile si tu es en retard de plusieurs Grands Prix.
 
-## Mettre à jour le week-end de course
+## Mettre à jour le calendrier
 
-Les horaires sont codés en dur dans [`data/sessions.json`](data/sessions.json),
-un seul week-end actif à la fois. Avant chaque nouveau Grand Prix, mets à jour
-ce fichier avec les horaires officiels (tous en UTC, suffixe `Z`) :
+Le calendrier est codé en dur dans [`data/calendar.json`](data/calendar.json),
+un tableau chronologique d'un objet par week-end. Avant chaque nouveau Grand
+Prix, **ajoute une entrée à la fin du tableau** (ne remplace pas le contenu
+existant, l'historique sert à la sélection d'un week-end antérieur) avec les
+horaires officiels (tous en UTC, suffixe `Z`) :
 
 ```json
 {
-  "weekend": {
-    "id": "2026-nom-du-gp",
-    "name": "Grand Prix de ... 2026",
-    "circuit": "...",
-    "season": 2026
-  },
-  "active_from_utc": "...",
-  "active_until_utc": "...",
+  "id": "2026-nom-du-gp",
+  "name": "Grand Prix de ... 2026",
+  "circuit": "...",
+  "season": 2026,
   "sessions": [
     { "key": "fp1", "label": "Essais Libres 1", "start_utc": "..." },
     { "key": "fp2", "label": "Essais Libres 2", "start_utc": "..." },
@@ -71,11 +75,14 @@ ce fichier avec les horaires officiels (tous en UTC, suffixe `Z`) :
 }
 ```
 
-`active_from_utc`/`active_until_utc` définissent la fenêtre pendant laquelle le
-filtre s'applique ; en dehors de cette fenêtre, l'extension n'intervient pas du
-tout. `id` doit changer à chaque week-end : c'est la clé utilisée pour stocker
-ton choix et la mémoire des dates apprises (voir plus bas), donc un nouvel id
-repart sur un réglage vierge.
+Pour un week-end sprint, remplace `fp2`/`fp3` par `sprint_quali`/`sprint`
+(voir les entrées Chine/Miami/Canada/Grande-Bretagne dans le fichier comme
+exemple) — le code ne dépend jamais des clés, seulement de `label`/`start_utc`.
+
+Le "week-end en cours" utilisé par défaut (écran de choix sur le site, entrée
+pré-sélectionnée dans la popup) est calculé automatiquement : c'est le
+dernier de la liste dont la première séance a déjà démarré. Pas besoin de
+champ séparé pour l'indiquer.
 
 ## Limites connues
 

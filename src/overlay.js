@@ -38,32 +38,6 @@ window.NGAGuard = window.NGAGuard || {};
         margin: 0 0 24px;
         font-size: 14px;
       }
-      #${ROOT_ID} .nga-choice {
-        display: block;
-        width: 100%;
-        margin-bottom: 10px;
-        padding: 12px 16px;
-        border-radius: 8px;
-        border: 1px solid #3a4250;
-        background: #1c222b;
-        color: #f2f2f2;
-        font-size: 15px;
-        cursor: pointer;
-        text-align: left;
-      }
-      #${ROOT_ID} .nga-choice:hover {
-        border-color: #e10600;
-        background: #262d38;
-      }
-      #${ROOT_ID} .nga-all {
-        margin-top: 14px;
-        background: none;
-        border: none;
-        color: #8b93a1;
-        font-size: 13px;
-        text-decoration: underline;
-        cursor: pointer;
-      }
       #${ROOT_ID} .nga-actions {
         display: flex;
         gap: 10px;
@@ -131,53 +105,37 @@ window.NGAGuard = window.NGAGuard || {};
     if (root) root.remove();
   };
 
-  NGA.showChooserOverlay = function (weekendData, onChosen) {
+  // Même écran (mêmes éléments, même fonctionnement) que la popup de
+  // l'extension : réglage actuel, choix du week-end de référence, ses
+  // séances, "Tout afficher"/"Appliquer le filtre" — voir src/cutoffUI.js.
+  NGA.showChooserOverlay = function (calendar, currentWeekend, cutoff, callbacks) {
     ensureStyle();
     const root = getRoot();
     const box = document.createElement("div");
     box.className = "nga-box";
-
-    const title = document.createElement("h1");
-    title.textContent = weekendData.weekend.name;
-    box.appendChild(title);
-
-    const sub = document.createElement("p");
-    sub.className = "nga-sub";
-    sub.textContent = "Jusqu'à quelle séance veux-tu masquer les news ?";
-    box.appendChild(sub);
-
-    weekendData.sessions.forEach((session) => {
-      const btn = document.createElement("button");
-      btn.className = "nga-choice";
-      btn.type = "button";
-      btn.textContent = "Je n'ai pas encore vu : " + session.label;
-      btn.addEventListener("click", () => {
-        onChosen({
-          mode: "session",
-          label: session.label,
-          cutoffUtcMillis: Date.parse(session.start_utc),
-          savedAt: Date.now(),
-        });
-      });
-      box.appendChild(btn);
-    });
-
-    const allBtn = document.createElement("button");
-    allBtn.className = "nga-all";
-    allBtn.type = "button";
-    allBtn.textContent = "Tout afficher (désactiver le filtre pour ce week-end)";
-    allBtn.addEventListener("click", () => {
-      onChosen({
-        mode: "all",
-        label: "Tout afficher",
-        cutoffUtcMillis: null,
-        savedAt: Date.now(),
-      });
-    });
-    box.appendChild(allBtn);
-
     root.innerHTML = "";
     root.appendChild(box);
+
+    let selectedWeekendId = (cutoff && cutoff.weekendId) || currentWeekend.id;
+
+    function renderBox() {
+      NGA.renderCutoffUI(box, {
+        calendar,
+        currentWeekend,
+        cutoff,
+        selectedWeekendId,
+        title: "NGA Spoiler Guard",
+        onSelectWeekend: (id) => {
+          selectedWeekendId = id;
+          renderBox();
+        },
+        onPickSession: (weekend, session) => callbacks.onPickSession(weekend, session),
+        onShowAll: () => callbacks.onShowAll(),
+        onClear: () => callbacks.onClear(),
+      });
+    }
+
+    renderBox();
   };
 
   NGA.showArticleBlockedOverlay = function (cutoff, weekendData, onChangeRequested) {
