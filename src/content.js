@@ -48,19 +48,24 @@ window.NGAGuard = window.NGAGuard || {};
     return m ? m[1] : null;
   }
 
-  // Le widget "Photos" (colonne de droite) liste des galeries par simple
-  // vignette + légende, sans date. La page dédiée /formule-1/photos/ liste ces
-  // mêmes galeries avec une date (page 1 = dernier week-end en date). On s'en
-  // sert comme source pour apprendre les vraies dates de ces galeries.
-  const PHOTOS_LISTING_URL = "https://motorsport.nextgen-auto.com/fr/formule-1/photos/";
+  // Certains widgets (galerie "Photos" et "Vidéos" en colonne de droite)
+  // listent leurs éléments par simple vignette + légende, sans date. Les pages
+  // dédiées /formule-1/photos/ et /formule-1/videos/ listent ces mêmes éléments
+  // avec une date (page 1 = dernier week-end en date), donc on s'en sert comme
+  // source pour apprendre les vraies dates quand elles manquent ailleurs.
+  const LISTING_SOURCES = [
+    { match: /\/formule-1\/photos\//, url: "https://motorsport.nextgen-auto.com/fr/formule-1/photos/" },
+    { match: /\/formule-1\/videos\//, url: "https://motorsport.nextgen-auto.com/fr/formule-1/videos/" },
+  ];
 
-  function isPhotoGalleryHref(href) {
-    return /\/formule-1\/photos\//.test(href || "");
+  function listingSourceForHref(href) {
+    const source = LISTING_SOURCES.find((s) => s.match.test(href || ""));
+    return source ? source.url : null;
   }
 
-  async function fetchPhotoGalleryDates() {
+  async function fetchListingDates(url) {
     try {
-      const res = await fetch(PHOTOS_LISTING_URL, { credentials: "omit" });
+      const res = await fetch(url, { credentials: "omit" });
       const html = await res.text();
       const doc = new DOMParser().parseFromString(html, "text/html");
       const dates = {};
@@ -71,10 +76,10 @@ window.NGAGuard = window.NGAGuard || {};
           const millis = cardPublishedMillis(a);
           if (id && millis !== null) dates[id] = millis;
         });
-      console.log("[NGA] fetchPhotoGalleryDates ->", Object.keys(dates).length, "date(s) apprise(s)");
+      console.log("[NGA] fetchListingDates(", url, ") ->", Object.keys(dates).length, "date(s) apprise(s)");
       return dates;
     } catch (e) {
-      console.log("[NGA] fetchPhotoGalleryDates a échoué", e);
+      console.log("[NGA] fetchListingDates a échoué pour", url, e);
       return {};
     }
   }
@@ -124,22 +129,21 @@ window.NGAGuard = window.NGAGuard || {};
     const learned = {};
     const cards = findCards();
 
-    const needsPhotoLookup = cards.some((cardEl) => {
+    const neededSourceUrls = new Set();
+    cards.forEach((cardEl) => {
       const href = cardEl.getAttribute("href") || "";
       const id = articleIdFromHref(href);
-      return (
-        id &&
-        cache[id] === undefined &&
-        isPhotoGalleryHref(href) &&
-        cardPublishedMillis(cardEl) === null
-      );
+      if (!id || cache[id] !== undefined || cardPublishedMillis(cardEl) !== null) return;
+      const sourceUrl = listingSourceForHref(href);
+      if (sourceUrl) neededSourceUrls.add(sourceUrl);
     });
 
-    if (needsPhotoLookup) {
-      const photoDates = await fetchPhotoGalleryDates();
-      if (Object.keys(photoDates).length) {
-        await NGA.mergeSpoilerCache(weekendId, photoDates);
-        cache = Object.assign({}, cache, photoDates);
+    if (neededSourceUrls.size) {
+      const results = await Promise.all(Array.from(neededSourceUrls).map(fetchListingDates));
+      const merged = Object.assign({}, ...results);
+      if (Object.keys(merged).length) {
+        await NGA.mergeSpoilerCache(weekendId, merged);
+        cache = Object.assign({}, cache, merged);
       }
     }
 
