@@ -91,6 +91,13 @@ window.NGAGuard = window.NGAGuard || {};
   // de date une fois ouverte.
   const SCHEDULE_WIDGET_SELECTOR = ".container.grid.grid-cols-1.divide-y";
 
+  // Pages hors scope pour le contrôle de spoil (tableaux de classements/résultats/
+  // calendriers bruts, pas des cartes d'actu datées) : les liens qu'elles listent
+  // (ex: "classements-f1-saison-2024,189081.html") matchent notre motif d'URL
+  // générique mais n'ont pas de date, donc seraient masqués par précaution à
+  // tort. On les exclut entièrement plutôt que de les faire deviner.
+  const OUT_OF_SCOPE_PATH_RE = /\/formule-1\/(classements|resultats|calendriers)\//;
+
   function findCards() {
     const cards = Array.from(document.querySelectorAll("a[href]")).filter((a) => {
       if (!ARTICLE_ID_RE.test(a.getAttribute("href") || "")) return false;
@@ -218,6 +225,11 @@ window.NGAGuard = window.NGAGuard || {};
       }
 
       if (cutoff.mode === "all") {
+        reveal();
+        return;
+      }
+
+      if (OUT_OF_SCOPE_PATH_RE.test(window.location.pathname)) {
         reveal();
         return;
       }
