@@ -14,10 +14,29 @@
     #app {
       padding: 16px;
     }
+    #dev-tools {
+      padding: 0 16px 16px;
+      border-top: 1px dashed #3a4250;
+      margin-top: 4px;
+      padding-top: 10px;
+    }
+    #dev-tools button {
+      width: 100%;
+      padding: 6px;
+      border-radius: 8px;
+      border: 1px dashed #6b4a1c;
+      background: none;
+      color: #c98a1a;
+      font-size: 11px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div id="app">Chargement…</div>
+  <div id="dev-tools">
+    <button type="button" id="dev-clear-cutoff">Dev : effacer le réglage</button>
+  </div>
   <script src="../src/storage.js"></script>
   <script src="../src/weekend.js"></script>
   <script src="../src/cutoffUI.js"></script>

@@ -15,12 +15,19 @@ window.NGAGuard = window.NGAGuard || {};
     }
     .nga-cutoffui .nga-current {
       font-size: 13px;
-      background: #1c222b;
       border: 1px solid #3a4250;
       border-radius: 8px;
       padding: 10px 12px;
       margin: 12px 0 14px;
       text-align: left;
+    }
+    .nga-cutoffui .nga-current.nga-current-unset {
+      background: #4a3414;
+      border-color: #c98a1a;
+    }
+    .nga-cutoffui .nga-current.nga-current-set {
+      background: #163420;
+      border-color: #2f8a4f;
     }
     .nga-cutoffui .nga-current strong {
       display: block;
@@ -60,6 +67,10 @@ window.NGAGuard = window.NGAGuard || {};
     .nga-cutoffui button.nga-choice:hover {
       border-color: #e10600;
     }
+    .nga-cutoffui button.nga-choice.nga-choice-selected {
+      border-color: #2f8a4f;
+      background: #163420;
+    }
     .nga-cutoffui .nga-row {
       display: flex;
       gap: 8px;
@@ -79,6 +90,12 @@ window.NGAGuard = window.NGAGuard || {};
       opacity: 0.4;
       cursor: not-allowed;
     }
+    .nga-cutoffui .nga-row button.nga-filter-btn:not(:disabled) {
+      background: #1f9d4c;
+      border-color: #1f9d4c;
+      color: #fff;
+      font-weight: 600;
+    }
   `;
 
   NGA.ensureCutoffUIStyle = function () {
@@ -90,26 +107,46 @@ window.NGAGuard = window.NGAGuard || {};
   };
 
   function currentLabel(cutoff) {
-    if (!cutoff) return "Non défini";
+    if (!cutoff) return "Aucun filtre";
     if (cutoff.mode === "all") return "Tout afficher";
     return "Masqué à partir de : " + cutoff.label;
   }
 
+  // Retrouve, pour un week-end donné, la clé de séance correspondant à un
+  // cutoff déjà enregistré (pour pré-sélectionner visuellement la séance
+  // active quand on rouvre l'écran de choix sur ce même week-end).
+  NGA.sessionKeyForCutoff = function (weekend, cutoff) {
+    if (!weekend || !cutoff || cutoff.mode !== "session" || cutoff.weekendId !== weekend.id) {
+      return null;
+    }
+    const session = weekend.sessions.find(
+      (s) => Date.parse(s.start_utc) === cutoff.cutoffUtcMillis
+    );
+    return session ? session.key : null;
+  };
+
   // container : élément DOM entièrement repeuplé à chaque appel.
   // params = {
-  //   calendar, currentWeekend, cutoff, selectedWeekendId, title,
+  //   calendar, currentWeekend, cutoff, selectedWeekendId, selectedSessionKey, title,
   //   onSelectWeekend(weekendId),
-  //   onPickSession(weekend, session),
+  //   onSelectSession(session),      // sélection en attente, n'applique rien
+  //   onApplyFilter(weekend, session), // clic sur "Filtrer" : applique la sélection en attente
   //   onShowAll(),
-  //   onClear(),
   // }
+  //
+  // Flux en 2 étapes : choisir un week-end fait apparaître ses séances : cliquer
+  // sur une séance ne fait que la sélectionner (bouton "Filtrer" activé) ; c'est
+  // uniquement le clic sur "Filtrer" qui applique réellement le réglage.
   NGA.renderCutoffUI = function (container, params) {
     NGA.ensureCutoffUIStyle();
     container.classList.add("nga-cutoffui");
     container.innerHTML = "";
 
-    const { calendar, currentWeekend, cutoff, selectedWeekendId, title } = params;
+    const { calendar, currentWeekend, cutoff, selectedWeekendId, selectedSessionKey, title } = params;
     const selectedWeekend = calendar.find((w) => w.id === selectedWeekendId) || currentWeekend;
+    const selectedSession = selectedSessionKey
+      ? selectedWeekend.sessions.find((s) => s.key === selectedSessionKey) || null
+      : null;
 
     if (title) {
       const h1 = document.createElement("h1");
@@ -118,7 +155,7 @@ window.NGAGuard = window.NGAGuard || {};
     }
 
     const current = document.createElement("div");
-    current.className = "nga-current";
+    current.className = "nga-current " + (cutoff ? "nga-current-set" : "nga-current-unset");
     const currentStrong = document.createElement("strong");
     currentStrong.textContent = "Réglage actuel";
     current.appendChild(currentStrong);
@@ -149,9 +186,12 @@ window.NGAGuard = window.NGAGuard || {};
     selectedWeekend.sessions.forEach((session) => {
       const btn = document.createElement("button");
       btn.className = "nga-choice";
+      if (selectedSession && session.key === selectedSession.key) {
+        btn.classList.add("nga-choice-selected");
+      }
       btn.type = "button";
       btn.textContent = "Je n'ai pas encore vu : " + session.label;
-      btn.addEventListener("click", () => params.onPickSession(selectedWeekend, session));
+      btn.addEventListener("click", () => params.onSelectSession(session));
       sessionsContainer.appendChild(btn);
     });
     container.appendChild(sessionsContainer);
@@ -165,12 +205,15 @@ window.NGAGuard = window.NGAGuard || {};
     allBtn.addEventListener("click", () => params.onShowAll());
     row.appendChild(allBtn);
 
-    const clearBtn = document.createElement("button");
-    clearBtn.type = "button";
-    clearBtn.textContent = "Appliquer le filtre";
-    clearBtn.disabled = !cutoff;
-    clearBtn.addEventListener("click", () => params.onClear());
-    row.appendChild(clearBtn);
+    const filterBtn = document.createElement("button");
+    filterBtn.type = "button";
+    filterBtn.className = "nga-filter-btn";
+    filterBtn.textContent = "Filtrer";
+    filterBtn.disabled = !selectedSession;
+    filterBtn.addEventListener("click", () => {
+      if (selectedSession) params.onApplyFilter(selectedWeekend, selectedSession);
+    });
+    row.appendChild(filterBtn);
 
     container.appendChild(row);
   };

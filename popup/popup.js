@@ -4,6 +4,7 @@
   const app = document.getElementById("app");
   let calendar = [];
   let selectedWeekendId = null;
+  let selectedSessionKey = null;
 
   async function render() {
     if (!calendar.length) {
@@ -16,20 +17,32 @@
     }
 
     const currentWeekend = NGA.findCurrentWeekend(calendar, Date.now());
-    if (!selectedWeekendId) selectedWeekendId = currentWeekend.id;
     const cutoff = await NGA.getCutoff();
+    if (!selectedWeekendId) {
+      selectedWeekendId = (cutoff && cutoff.weekendId) || currentWeekend.id;
+      selectedSessionKey = NGA.sessionKeyForCutoff(
+        calendar.find((w) => w.id === selectedWeekendId),
+        cutoff
+      );
+    }
 
     NGA.renderCutoffUI(app, {
       calendar,
       currentWeekend,
       cutoff,
       selectedWeekendId,
+      selectedSessionKey,
       title: "NGA Spoiler Guard",
       onSelectWeekend: (id) => {
         selectedWeekendId = id;
+        selectedSessionKey = null;
         render();
       },
-      onPickSession: async (weekend, session) => {
+      onSelectSession: (session) => {
+        selectedSessionKey = session.key;
+        render();
+      },
+      onApplyFilter: async (weekend, session) => {
         await NGA.setCutoff({
           mode: "session",
           weekendId: weekend.id,
@@ -46,14 +59,18 @@
           cutoffUtcMillis: null,
           savedAt: Date.now(),
         });
-        render();
-      },
-      onClear: async () => {
-        await NGA.clearCutoff();
+        selectedSessionKey = null;
         render();
       },
     });
   }
+
+  document.getElementById("dev-clear-cutoff").addEventListener("click", async () => {
+    await NGA.clearCutoff();
+    selectedWeekendId = null;
+    selectedSessionKey = null;
+    render();
+  });
 
   render();
 })(window.NGAGuard);

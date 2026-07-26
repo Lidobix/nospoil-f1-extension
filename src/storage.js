@@ -21,6 +21,8 @@ window.NGAGuard = window.NGAGuard || {};
     });
   };
 
+  // Usage dev uniquement (bouton popup) : efface le réglage pour forcer la
+  // réouverture de l'écran de choix au prochain chargement du site.
   NGA.clearCutoff = function () {
     return new Promise((resolve) => {
       chrome.storage.local.remove([NGA.CUTOFF_KEY], resolve);

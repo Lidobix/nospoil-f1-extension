@@ -107,7 +107,9 @@ window.NGAGuard = window.NGAGuard || {};
 
   // Même écran (mêmes éléments, même fonctionnement) que la popup de
   // l'extension : réglage actuel, choix du week-end de référence, ses
-  // séances, "Tout afficher"/"Appliquer le filtre" — voir src/cutoffUI.js.
+  // séances, "Tout afficher"/"Filtrer" — voir src/cutoffUI.js.
+  // Flux en 2 étapes : choisir une séance ne fait que la sélectionner (le site
+  // ne se charge pas) ; seul le clic sur "Filtrer" applique le réglage.
   NGA.showChooserOverlay = function (calendar, currentWeekend, cutoff, callbacks) {
     ensureStyle();
     const root = getRoot();
@@ -117,6 +119,10 @@ window.NGAGuard = window.NGAGuard || {};
     root.appendChild(box);
 
     let selectedWeekendId = (cutoff && cutoff.weekendId) || currentWeekend.id;
+    let selectedSessionKey = NGA.sessionKeyForCutoff(
+      calendar.find((w) => w.id === selectedWeekendId),
+      cutoff
+    );
 
     function renderBox() {
       NGA.renderCutoffUI(box, {
@@ -124,14 +130,19 @@ window.NGAGuard = window.NGAGuard || {};
         currentWeekend,
         cutoff,
         selectedWeekendId,
+        selectedSessionKey,
         title: "NGA Spoiler Guard",
         onSelectWeekend: (id) => {
           selectedWeekendId = id;
+          selectedSessionKey = null;
           renderBox();
         },
-        onPickSession: (weekend, session) => callbacks.onPickSession(weekend, session),
+        onSelectSession: (session) => {
+          selectedSessionKey = session.key;
+          renderBox();
+        },
+        onApplyFilter: (weekend, session) => callbacks.onApplyFilter(weekend, session),
         onShowAll: () => callbacks.onShowAll(),
-        onClear: () => callbacks.onClear(),
       });
     }
 

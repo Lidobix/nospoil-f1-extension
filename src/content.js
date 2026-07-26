@@ -207,7 +207,7 @@ window.NGAGuard = window.NGAGuard || {};
     function openChooser() {
       stopSafetyTimer();
       NGA.showChooserOverlay(calendar, currentWeekend, cutoff, {
-        onPickSession: async (weekend, session) => {
+        onApplyFilter: async (weekend, session) => {
           const chosen = {
             mode: "session",
             weekendId: weekend.id,
@@ -223,11 +223,6 @@ window.NGAGuard = window.NGAGuard || {};
           const chosen = { mode: "all", label: "Tout afficher", cutoffUtcMillis: null, savedAt: Date.now() };
           await NGA.setCutoff(chosen);
           cutoff = chosen;
-          applyCutoff();
-        },
-        onClear: async () => {
-          await NGA.clearCutoff();
-          cutoff = null;
           applyCutoff();
         },
       });
