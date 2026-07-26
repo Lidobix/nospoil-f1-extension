@@ -193,16 +193,51 @@ window.NGAGuard = window.NGAGuard || {};
     root.appendChild(box);
   };
 
+  // Empêche l'activation d'un lien masqué au clavier (Entrée sur le lien
+  // focus) : `pointer-events: none` (CSS) bloque déjà la souris mais pas ça.
+  // Référence nommée (et non une fonction anonyme) pour pouvoir la retirer
+  // proprement dans unmaskCard.
+  function blockClickIfMasked(e) {
+    if (e.currentTarget.classList.contains("nga-guard-masked")) e.preventDefault();
+  }
+
+  // Un réglage plus permissif (ex: passage à "Tout afficher", ou choix d'une
+  // séance plus tardive) doit pouvoir démasquer une carte déjà masquée par un
+  // réglage précédent, sans recharger la page : voir NGA.unmaskCard /
+  // NGA.unmaskAllCards.
   NGA.maskCard = function (cardEl, label) {
     ensureStyle();
-    if (cardEl.classList.contains("nga-guard-masked")) return;
-    cardEl.classList.add("nga-guard-masked");
-    cardEl.removeAttribute("href");
-    cardEl.addEventListener("click", (e) => e.preventDefault());
+    if (!cardEl.classList.contains("nga-guard-masked")) {
+      cardEl.classList.add("nga-guard-masked");
+      if (cardEl.hasAttribute("href")) {
+        cardEl.dataset.ngaOriginalHref = cardEl.getAttribute("href");
+        cardEl.removeAttribute("href");
+      }
+      cardEl.addEventListener("click", blockClickIfMasked);
+      const marker = document.createElement("span");
+      marker.className = "nga-guard-mask-label";
+      marker.textContent = "Masqué — publié après " + label;
+      cardEl.appendChild(marker);
+      return;
+    }
+    // Déjà masquée (ex: par un précédent passage) : juste rafraîchir le libellé.
+    const marker = cardEl.querySelector(".nga-guard-mask-label");
+    if (marker) marker.textContent = "Masqué — publié après " + label;
+  };
 
-    const marker = document.createElement("span");
-    marker.className = "nga-guard-mask-label";
-    marker.textContent = "Masqué — publié après " + label;
-    cardEl.appendChild(marker);
+  NGA.unmaskCard = function (cardEl) {
+    if (!cardEl.classList.contains("nga-guard-masked")) return;
+    cardEl.classList.remove("nga-guard-masked");
+    if (cardEl.dataset.ngaOriginalHref) {
+      cardEl.setAttribute("href", cardEl.dataset.ngaOriginalHref);
+      delete cardEl.dataset.ngaOriginalHref;
+    }
+    cardEl.removeEventListener("click", blockClickIfMasked);
+    const marker = cardEl.querySelector(".nga-guard-mask-label");
+    if (marker) marker.remove();
+  };
+
+  NGA.unmaskAllCards = function () {
+    document.querySelectorAll(".nga-guard-masked").forEach((el) => NGA.unmaskCard(el));
   };
 })(window.NGAGuard);

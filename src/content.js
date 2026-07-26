@@ -173,6 +173,8 @@ window.NGAGuard = window.NGAGuard || {};
       );
       if (shouldMask) {
         NGA.maskCard(cardEl, cutoff.label);
+      } else {
+        NGA.unmaskCard(cardEl);
       }
     });
 
@@ -234,11 +236,17 @@ window.NGAGuard = window.NGAGuard || {};
       }
 
       if (cutoff.mode === "all") {
+        // Démasque tout ce qui aurait pu être masqué par un réglage précédent
+        // (même onglet, sans rechargement) : sinon les cartes restaient
+        // masquées visuellement même si la logique de coupure ne s'appliquait
+        // plus.
+        NGA.unmaskAllCards();
         reveal();
         return;
       }
 
       if (OUT_OF_SCOPE_PATH_RE.test(window.location.pathname)) {
+        NGA.unmaskAllCards();
         reveal();
         return;
       }
