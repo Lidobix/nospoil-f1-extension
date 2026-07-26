@@ -48,6 +48,37 @@ window.NGAGuard = window.NGAGuard || {};
     return m ? m[1] : null;
   }
 
+  // Le widget "Photos" (colonne de droite) liste des galeries par simple
+  // vignette + légende, sans date. La page dédiée /formule-1/photos/ liste ces
+  // mêmes galeries avec une date (page 1 = dernier week-end en date). On s'en
+  // sert comme source pour apprendre les vraies dates de ces galeries.
+  const PHOTOS_LISTING_URL = "https://motorsport.nextgen-auto.com/fr/formule-1/photos/";
+
+  function isPhotoGalleryHref(href) {
+    return /\/formule-1\/photos\//.test(href || "");
+  }
+
+  async function fetchPhotoGalleryDates() {
+    try {
+      const res = await fetch(PHOTOS_LISTING_URL, { credentials: "omit" });
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const dates = {};
+      Array.from(doc.querySelectorAll("a[href]"))
+        .filter((a) => ARTICLE_ID_RE.test(a.getAttribute("href") || ""))
+        .forEach((a) => {
+          const id = articleIdFromHref(a.getAttribute("href"));
+          const millis = cardPublishedMillis(a);
+          if (id && millis !== null) dates[id] = millis;
+        });
+      console.log("[NGA] fetchPhotoGalleryDates ->", Object.keys(dates).length, "date(s) apprise(s)");
+      return dates;
+    } catch (e) {
+      console.log("[NGA] fetchPhotoGalleryDates a échoué", e);
+      return {};
+    }
+  }
+
   // Tableau "programme du week-end" (Libres 1, Libres 2, ... Course avec leurs
   // horaires) : ce n'est pas du contenu spoilant en soi (juste des horaires),
   // donc on ne le soumet pas au masquage. La page de destination d'un lien
@@ -89,10 +120,30 @@ window.NGAGuard = window.NGAGuard || {};
   // que ce même article soit reconnu correctement s'il réapparaît ailleurs sans
   // date (ex: dans un autre article, en lien "à lire aussi").
   async function maskArticleLinks(cutoff, weekendId) {
-    const cache = await NGA.getSpoilerCache(weekendId);
+    let cache = await NGA.getSpoilerCache(weekendId);
     const learned = {};
+    const cards = findCards();
 
-    findCards().forEach((cardEl, i) => {
+    const needsPhotoLookup = cards.some((cardEl) => {
+      const href = cardEl.getAttribute("href") || "";
+      const id = articleIdFromHref(href);
+      return (
+        id &&
+        cache[id] === undefined &&
+        isPhotoGalleryHref(href) &&
+        cardPublishedMillis(cardEl) === null
+      );
+    });
+
+    if (needsPhotoLookup) {
+      const photoDates = await fetchPhotoGalleryDates();
+      if (Object.keys(photoDates).length) {
+        await NGA.mergeSpoilerCache(weekendId, photoDates);
+        cache = Object.assign({}, cache, photoDates);
+      }
+    }
+
+    cards.forEach((cardEl, i) => {
       const id = articleIdFromHref(cardEl.getAttribute("href"));
       let publishedMillis = cardPublishedMillis(cardEl);
 
