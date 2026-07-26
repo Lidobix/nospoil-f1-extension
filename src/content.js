@@ -48,10 +48,19 @@ window.NGAGuard = window.NGAGuard || {};
     return m ? m[1] : null;
   }
 
+  // Tableau "programme du week-end" (Libres 1, Libres 2, ... Course avec leurs
+  // horaires) : ce n'est pas du contenu spoilant en soi (juste des horaires),
+  // donc on ne le soumet pas au masquage. La page de destination d'un lien
+  // "Résultats et résumé" reste de toute façon protégée par son propre contrôle
+  // de date une fois ouverte.
+  const SCHEDULE_WIDGET_SELECTOR = ".container.grid.grid-cols-1.divide-y";
+
   function findCards() {
-    const cards = Array.from(document.querySelectorAll("a[href]")).filter((a) =>
-      ARTICLE_ID_RE.test(a.getAttribute("href") || "")
-    );
+    const cards = Array.from(document.querySelectorAll("a[href]")).filter((a) => {
+      if (!ARTICLE_ID_RE.test(a.getAttribute("href") || "")) return false;
+      if (a.closest(SCHEDULE_WIDGET_SELECTOR)) return false;
+      return true;
+    });
     console.log("[NGA] findCards ->", cards.length, "lien(s) d'article trouvé(s)");
     return cards;
   }
