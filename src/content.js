@@ -204,26 +204,25 @@ window.NGAGuard = window.NGAGuard || {};
     let cutoff = await NGA.getCutoff();
     console.log("[NGA] week-end courant =", currentWeekend.id, "cutoff lu du storage =", cutoff);
 
+    // Les callbacks se contentent d'écrire dans le storage : c'est l'écouteur
+    // chrome.storage.onChanged plus bas qui applique le nouveau réglage (seule
+    // source de vérité). Appeler applyCutoff() ici EN PLUS provoquait un double
+    // traitement (l'écouteur se déclenche aussi pour nos propres écritures) qui
+    // pouvait re-masquer la page juste après l'avoir révélée.
     function openChooser() {
       stopSafetyTimer();
       NGA.showChooserOverlay(calendar, currentWeekend, cutoff, {
         onApplyFilter: async (weekend, session) => {
-          const chosen = {
+          await NGA.setCutoff({
             mode: "session",
             weekendId: weekend.id,
             label: weekend.name + " – " + session.label,
             cutoffUtcMillis: Date.parse(session.start_utc),
             savedAt: Date.now(),
-          };
-          await NGA.setCutoff(chosen);
-          cutoff = chosen;
-          applyCutoff();
+          });
         },
         onShowAll: async () => {
-          const chosen = { mode: "all", label: "Tout afficher", cutoffUtcMillis: null, savedAt: Date.now() };
-          await NGA.setCutoff(chosen);
-          cutoff = chosen;
-          applyCutoff();
+          await NGA.setCutoff({ mode: "all", label: "Tout afficher", cutoffUtcMillis: null, savedAt: Date.now() });
         },
       });
     }
@@ -279,8 +278,9 @@ window.NGAGuard = window.NGAGuard || {};
 
     applyCutoff();
 
-    // Un changement fait depuis la popup doit s'appliquer immédiatement à cet onglet,
-    // sans nécessiter de rechargement.
+    // Seule source de vérité pour appliquer un changement de réglage (qu'il
+    // vienne de la popup ou de l'écran de choix sur la page elle-même) :
+    // s'applique immédiatement à cet onglet, sans nécessiter de rechargement.
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
       if (!(NGA.CUTOFF_KEY in changes)) return;
