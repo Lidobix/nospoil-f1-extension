@@ -39,20 +39,25 @@ window.NGAGuard = window.NGAGuard || {};
   }
 
   // Détection par motif d'URL (",<id>.html") plutôt que par classes CSS : couvre
-  // toutes les zones de la page (grille "Actualité", "à la une", liens rapides
-  // EL1/EL2/.../Résultats...), pas seulement la grille principale.
-  const ARTICLE_HREF_RE = /,\d+\.html(?:[?#].*)?$/;
+  // toutes les zones de la page (grille "Actualité", "à la une", liens rapides,
+  // "à lire aussi" dans le corps d'un article), pas seulement une grille précise.
+  const ARTICLE_ID_RE = /,(\d+)\.html(?:[?#].*)?$/;
+
+  function articleIdFromHref(href) {
+    const m = ARTICLE_ID_RE.exec(href || "");
+    return m ? m[1] : null;
+  }
 
   function findCards() {
     const cards = Array.from(document.querySelectorAll("a[href]")).filter((a) =>
-      ARTICLE_HREF_RE.test(a.getAttribute("href") || "")
+      ARTICLE_ID_RE.test(a.getAttribute("href") || "")
     );
     console.log("[NGA] findCards ->", cards.length, "lien(s) d'article trouvé(s)");
     return cards;
   }
 
-  // null = date illisible ou absente (ex: tuiles "à la une" sans date affichée)
-  // -> on masque par précaution plutôt que de prendre un risque de spoiler.
+  // null = date illisible ou absente à côté du lien (ex: tuiles "à la une" ou
+  // liens "à lire aussi" sans date affichée).
   function cardPublishedMillis(cardEl) {
     const paragraphs = cardEl.querySelectorAll("p");
     if (!paragraphs.length) return null;
@@ -67,21 +72,42 @@ window.NGAGuard = window.NGAGuard || {};
     return NGA.zonedTimeToUtc(parsed.y, parsed.m, parsed.d, parsed.h, parsed.mi, NGA.SITE_TIMEZONE);
   }
 
-  function maskListingCards(cutoff) {
-    console.log("[NGA] maskListingCards, cutoff =", cutoff);
+  // Masque tous les liens d'article de la page courante (grille datée, tuiles
+  // "à la une", "à lire aussi", peu importe). Pour chaque lien : on essaie
+  // d'abord sa date affichée ; à défaut on interroge la mémoire des dates
+  // apprises pour ce week-end ; à défaut de tout ça, on masque par précaution.
+  // Les dates trouvées via un span sont à leur tour ajoutées à la mémoire, pour
+  // que ce même article soit reconnu correctement s'il réapparaît ailleurs sans
+  // date (ex: dans un autre article, en lien "à lire aussi").
+  async function maskArticleLinks(cutoff, weekendId) {
+    const cache = await NGA.getSpoilerCache(weekendId);
+    const learned = {};
+
     findCards().forEach((cardEl, i) => {
-      const publishedMillis = cardPublishedMillis(cardEl);
+      const id = articleIdFromHref(cardEl.getAttribute("href"));
+      let publishedMillis = cardPublishedMillis(cardEl);
+
+      if (publishedMillis !== null && id) {
+        learned[id] = publishedMillis;
+      } else if (publishedMillis === null && id && cache[id] !== undefined) {
+        publishedMillis = cache[id];
+      }
+
       const shouldMask = publishedMillis === null || publishedMillis >= cutoff.cutoffUtcMillis;
       console.log(
-        "[NGA] carte", i,
+        "[NGA] lien", i, "id =", id,
         "publishedMillis =", publishedMillis,
-        publishedMillis ? new Date(publishedMillis).toISOString() : "(non parsé)",
-        "-> masquée =", shouldMask
+        publishedMillis ? new Date(publishedMillis).toISOString() : "(inconnu)",
+        "-> masqué =", shouldMask
       );
       if (shouldMask) {
         NGA.maskCard(cardEl, cutoff.label);
       }
     });
+
+    if (Object.keys(learned).length) {
+      await NGA.mergeSpoilerCache(weekendId, learned);
+    }
   }
 
   // null = ce n'est pas une page d'article (pas de meta og:type=article exploitable).
@@ -108,13 +134,14 @@ window.NGAGuard = window.NGAGuard || {};
       return;
     }
 
-    let cutoff = await NGA.getCutoff(weekendData.weekend.id);
-    console.log("[NGA] weekend =", weekendData.weekend.id, "cutoff lu du storage =", cutoff);
+    const weekendId = weekendData.weekend.id;
+    let cutoff = await NGA.getCutoff(weekendId);
+    console.log("[NGA] weekend =", weekendId, "cutoff lu du storage =", cutoff);
 
     function openChooser() {
       stopSafetyTimer();
       NGA.showChooserOverlay(weekendData, async (chosen) => {
-        await NGA.setCutoff(weekendData.weekend.id, chosen);
+        await NGA.setCutoff(weekendId, chosen);
         cutoff = chosen;
         applyCutoff();
       });
@@ -131,22 +158,34 @@ window.NGAGuard = window.NGAGuard || {};
         return;
       }
 
-      whenDomReady(() => {
+      whenDomReady(async () => {
         const articleMillis = articlePublishedMillis();
         console.log("[NGA] applyCutoff, cutoff =", cutoff, "articleMillis =", articleMillis);
 
         if (articleMillis !== null) {
+          // On connaît la vraie date de CETTE page : on la mémorise dans tous les
+          // cas, qu'elle soit bloquée ou non, pour les prochaines fois où cet
+          // article réapparaîtra ailleurs sans date (ex: en lien "à lire aussi").
+          const selfId = articleIdFromHref(window.location.href);
+          if (selfId) {
+            await NGA.mergeSpoilerCache(weekendId, { [selfId]: articleMillis });
+          }
+
           if (articleMillis >= cutoff.cutoffUtcMillis) {
             stopSafetyTimer();
             NGA.showArticleBlockedOverlay(cutoff, weekendData, openChooser);
-          } else {
-            reveal();
+            return;
           }
+
+          // Article sûr : on masque quand même les liens "à lire aussi" de son
+          // corps avant de révéler la page.
+          await maskArticleLinks(cutoff, weekendId);
+          reveal();
           return;
         }
 
         if (findCards().length) {
-          maskListingCards(cutoff);
+          await maskArticleLinks(cutoff, weekendId);
         }
         reveal();
       });
@@ -158,7 +197,7 @@ window.NGAGuard = window.NGAGuard || {};
     // sans nécessiter de rechargement.
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
-      const key = NGA.storageKey(weekendData.weekend.id);
+      const key = NGA.storageKey(weekendId);
       if (!(key in changes)) return;
       cutoff = changes[key].newValue || null;
       rearm();

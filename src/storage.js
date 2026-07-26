@@ -26,4 +26,30 @@ window.NGAGuard = window.NGAGuard || {};
       chrome.storage.local.remove([NGA.storageKey(weekendId)], resolve);
     });
   };
+
+  // Mémoire des vraies dates de publication apprises pour ce week-end, indexées
+  // par identifiant d'article (ex: "210213" pour ".../xxx,210213.html"). Permet
+  // de masquer correctement un lien sans date visible (ex: "à lire aussi" dans
+  // le corps d'un article) dès lors que sa date a été vue ailleurs (grille
+  // datée, ou visite directe de sa page).
+  NGA.spoilerCacheKey = function (weekendId) {
+    return "nga_spoiler_cache_" + weekendId;
+  };
+
+  NGA.getSpoilerCache = function (weekendId) {
+    return new Promise((resolve) => {
+      const key = NGA.spoilerCacheKey(weekendId);
+      chrome.storage.local.get([key], (res) => resolve(res[key] || {}));
+    });
+  };
+
+  // entries: { [articleId]: publishedUtcMillis }
+  NGA.mergeSpoilerCache = function (weekendId, entries) {
+    return NGA.getSpoilerCache(weekendId).then((cache) => {
+      const merged = Object.assign({}, cache, entries);
+      return new Promise((resolve) => {
+        chrome.storage.local.set({ [NGA.spoilerCacheKey(weekendId)]: merged }, resolve);
+      });
+    });
+  };
 })(window.NGAGuard);
