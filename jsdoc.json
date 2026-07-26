@@ -1,0 +1,16 @@
+{
+  "source": {
+    "include": ["src", "popup"],
+    "includePattern": ".+\\.js$"
+  },
+  "opts": {
+    "destination": "docs/",
+    "recurse": true
+  },
+  "templates": {
+    "cleverLinks": true,
+    "default": {
+      "outputSourceFiles": false
+    }
+  }
+}

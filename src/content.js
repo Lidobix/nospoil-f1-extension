@@ -1,4 +1,7 @@
-// Orchestrateur : anti-flash, décision de blocage/masquage, écoute des changements de réglage.
+/**
+ * Orchestrateur : anti-flash, décision de blocage/masquage, écoute des changements de réglage.
+ * @module content
+ */
 window.NGAGuard = window.NGAGuard || {};
 
 (function (NGA) {
@@ -8,6 +11,12 @@ window.NGAGuard = window.NGAGuard || {};
   let revealed = false;
   let safetyTimer = setTimeout(reveal, 3000);
 
+  /**
+   * Révèle la page (annule le `visibility: hidden` posé au chargement) et
+   * retire l'overlay éventuellement affiché. Sans effet si déjà révélée.
+   * @memberof module:content
+   * @returns {void}
+   */
   function reveal() {
     if (revealed) return;
     revealed = true;
@@ -16,13 +25,23 @@ window.NGAGuard = window.NGAGuard || {};
     root.style.visibility = "";
   }
 
-  // À appeler dès qu'un écran de blocage s'affiche pour de bon (en attente d'une
-  // action de l'utilisateur) : ce n'est plus un état "chargement", le garde-fou
-  // anti-blocage ne doit donc plus le révéler tout seul après 3s.
+  /**
+   * Arrête le garde-fou anti-blocage (qui révélerait la page après 3s) : à
+   * appeler dès qu'un écran d'attente légitime (chooser, article bloqué) s'affiche.
+   * @memberof module:content
+   * @returns {void}
+   */
   function stopSafetyTimer() {
     clearTimeout(safetyTimer);
   }
 
+  /**
+   * Réinitialise l'état anti-flash (masque à nouveau la page, retire
+   * l'overlay, relance le garde-fou de 3s) : utilisé quand un changement de
+   * réglage nécessite de rejouer toute la décision de blocage/masquage.
+   * @memberof module:content
+   * @returns {void}
+   */
   function rearm() {
     revealed = false;
     root.style.visibility = "hidden";
@@ -30,6 +49,13 @@ window.NGAGuard = window.NGAGuard || {};
     safetyTimer = setTimeout(reveal, 3000);
   }
 
+  /**
+   * Exécute `cb` immédiatement si le DOM est déjà prêt, sinon au prochain
+   * évènement DOMContentLoaded.
+   * @memberof module:content
+   * @param {function():void} cb - fonction à exécuter une fois le DOM prêt.
+   * @returns {void}
+   */
   function whenDomReady(cb) {
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", cb, { once: true });
@@ -38,31 +64,45 @@ window.NGAGuard = window.NGAGuard || {};
     }
   }
 
-  // Détection par motif d'URL (",<id>.html") plutôt que par classes CSS : couvre
-  // toutes les zones de la page (grille "Actualité", "à la une", liens rapides,
-  // "à lire aussi" dans le corps d'un article), pas seulement une grille précise.
+  /** Motif d'URL identifiant un lien d'article (ex: "...,210213.html"). @memberof module:content @constant {RegExp} */
   const ARTICLE_ID_RE = /,(\d+)\.html(?:[?#].*)?$/;
 
+  /**
+   * Extrait l'identifiant numérique d'un lien d'article depuis son href.
+   * @memberof module:content
+   * @param {string} href - l'URL (absolue ou relative) du lien.
+   * @returns {string|null} l'identifiant d'article (ex: "210213"), ou null si `href` ne correspond pas au motif attendu.
+   */
   function articleIdFromHref(href) {
     const m = ARTICLE_ID_RE.exec(href || "");
     return m ? m[1] : null;
   }
 
-  // Certains widgets (galerie "Photos" et "Vidéos" en colonne de droite)
-  // listent leurs éléments par simple vignette + légende, sans date. Les pages
-  // dédiées /formule-1/photos/ et /formule-1/videos/ listent ces mêmes éléments
-  // avec une date (page 1 = dernier week-end en date), donc on s'en sert comme
-  // source pour apprendre les vraies dates quand elles manquent ailleurs.
+  /** Pages de listing dédiées utilisées pour apprendre les dates des liens sans date inline (galeries photos/vidéos). @memberof module:content @constant {Array<{match: RegExp, url: string}>} */
   const LISTING_SOURCES = [
     { match: /\/formule-1\/photos\//, url: "https://motorsport.nextgen-auto.com/fr/formule-1/photos/" },
     { match: /\/formule-1\/videos\//, url: "https://motorsport.nextgen-auto.com/fr/formule-1/videos/" },
   ];
 
+  /**
+   * Retrouve la page de listing dédiée (voir LISTING_SOURCES) susceptible de
+   * documenter la date d'un lien donné.
+   * @memberof module:content
+   * @param {string} href - l'URL du lien à résoudre.
+   * @returns {string|null} l'URL de la page de listing correspondante, ou null si aucune ne correspond.
+   */
   function listingSourceForHref(href) {
     const source = LISTING_SOURCES.find((s) => s.match.test(href || ""));
     return source ? source.url : null;
   }
 
+  /**
+   * Récupère et analyse une page de listing dédiée (galerie photos/vidéos)
+   * pour en apprendre les dates de publication, pour les liens sans date inline.
+   * @memberof module:content
+   * @param {string} url - l'URL de la page de listing à récupérer.
+   * @returns {Promise<Object<string, number>>} table identifiant d'article -> date de publication UTC (ms) ; vide en cas d'échec réseau.
+   */
   async function fetchListingDates(url) {
     try {
       const res = await fetch(url, { credentials: "omit" });
@@ -84,20 +124,17 @@ window.NGAGuard = window.NGAGuard || {};
     }
   }
 
-  // Tableau "programme du week-end" (Libres 1, Libres 2, ... Course avec leurs
-  // horaires) : ce n'est pas du contenu spoilant en soi (juste des horaires),
-  // donc on ne le soumet pas au masquage. La page de destination d'un lien
-  // "Résultats et résumé" reste de toute façon protégée par son propre contrôle
-  // de date une fois ouverte.
+  /** Sélecteur du tableau "programme du week-end" (horaires), exclu du masquage. @memberof module:content @constant {string} */
   const SCHEDULE_WIDGET_SELECTOR = ".container.grid.grid-cols-1.divide-y";
-
-  // Pages hors scope pour le contrôle de spoil (tableaux de classements/résultats/
-  // calendriers bruts, pas des cartes d'actu datées) : les liens qu'elles listent
-  // (ex: "classements-f1-saison-2024,189081.html") matchent notre motif d'URL
-  // générique mais n'ont pas de date, donc seraient masqués par précaution à
-  // tort. On les exclut entièrement plutôt que de les faire deviner.
+  /** Motif des chemins de page hors scope du contrôle de spoil (classements/résultats/calendriers bruts). @memberof module:content @constant {RegExp} */
   const OUT_OF_SCOPE_PATH_RE = /\/formule-1\/(classements|resultats|calendriers)\//;
 
+  /**
+   * Recherche tous les liens d'article de la page courante, hors tableau
+   * "programme du week-end".
+   * @memberof module:content
+   * @returns {Array<HTMLElement>} les éléments `<a>` trouvés.
+   */
   function findCards() {
     const cards = Array.from(document.querySelectorAll("a[href]")).filter((a) => {
       if (!ARTICLE_ID_RE.test(a.getAttribute("href") || "")) return false;
@@ -108,8 +145,12 @@ window.NGAGuard = window.NGAGuard || {};
     return cards;
   }
 
-  // null = date illisible ou absente à côté du lien (ex: tuiles "à la une" ou
-  // liens "à lire aussi" sans date affichée).
+  /**
+   * Déduit la date de publication affichée à côté d'une carte de liste.
+   * @memberof module:content
+   * @param {HTMLElement} cardEl - l'élément `<a>` de la carte.
+   * @returns {number|null} date de publication UTC (ms), ou null si illisible/absente.
+   */
   function cardPublishedMillis(cardEl) {
     const paragraphs = cardEl.querySelectorAll("p");
     if (!paragraphs.length) return null;
@@ -124,13 +165,15 @@ window.NGAGuard = window.NGAGuard || {};
     return NGA.zonedTimeToUtc(parsed.y, parsed.m, parsed.d, parsed.h, parsed.mi, NGA.SITE_TIMEZONE);
   }
 
-  // Masque tous les liens d'article de la page courante (grille datée, tuiles
-  // "à la une", "à lire aussi", peu importe). Pour chaque lien : on essaie
-  // d'abord sa date affichée ; à défaut on interroge la mémoire des dates
-  // apprises pour ce week-end ; à défaut de tout ça, on masque par précaution.
-  // Les dates trouvées via un span sont à leur tour ajoutées à la mémoire, pour
-  // que ce même article soit reconnu correctement s'il réapparaît ailleurs sans
-  // date (ex: dans un autre article, en lien "à lire aussi").
+  /**
+   * Masque (ou démasque) tous les liens d'article de la page courante selon
+   * `cutoff`, en résolvant les dates manquantes via la mémoire apprise puis
+   * via les pages de listing dédiées, avec masquage par précaution en
+   * dernier recours. Les dates nouvellement lues sont ajoutées à la mémoire.
+   * @memberof module:content
+   * @param {NGA.Cutoff} cutoff - la coupure active (mode "session" attendu).
+   * @returns {Promise<void>} résolue une fois toutes les cartes traitées et la mémoire mise à jour.
+   */
   async function maskArticleLinks(cutoff) {
     let cache = await NGA.getSpoilerCache();
     const learned = {};
@@ -173,6 +216,8 @@ window.NGAGuard = window.NGAGuard || {};
       );
       if (shouldMask) {
         NGA.maskCard(cardEl, cutoff.label);
+      } else {
+        NGA.unmaskCard(cardEl);
       }
     });
 
@@ -181,7 +226,12 @@ window.NGAGuard = window.NGAGuard || {};
     }
   }
 
-  // null = ce n'est pas une page d'article (pas de meta og:type=article exploitable).
+  /**
+   * Détermine la date de publication de la page courante si c'est un
+   * article (via ses balises `og:type`/`og:article:published_time`).
+   * @memberof module:content
+   * @returns {number|null} date de publication UTC (ms), ou null si la page n'est pas un article ou que la date est illisible.
+   */
   function articlePublishedMillis() {
     const typeMeta = document.querySelector('meta[property="og:type"]');
     if (!typeMeta || typeMeta.getAttribute("content") !== "article") return null;
@@ -191,6 +241,15 @@ window.NGAGuard = window.NGAGuard || {};
     return Number.isNaN(millis) ? null : millis;
   }
 
+  /**
+   * Point d'entrée. `applyCutoff()` n'est déclenché que depuis deux endroits :
+   * l'appel initial, et le listener chrome.storage.onChanged (seule source de
+   * vérité pour tout changement de réglage, popup comme écran de choix sur la
+   * page — les callbacks de openChooser se contentent d'écrire dans le
+   * storage, sans appeler applyCutoff() elles-mêmes).
+   * @memberof module:content
+   * @returns {Promise<void>}
+   */
   async function run() {
     let calendar;
     try {
@@ -204,11 +263,12 @@ window.NGAGuard = window.NGAGuard || {};
     let cutoff = await NGA.getCutoff();
     console.log("[NGA] week-end courant =", currentWeekend.id, "cutoff lu du storage =", cutoff);
 
-    // Les callbacks se contentent d'écrire dans le storage : c'est l'écouteur
-    // chrome.storage.onChanged plus bas qui applique le nouveau réglage (seule
-    // source de vérité). Appeler applyCutoff() ici EN PLUS provoquait un double
-    // traitement (l'écouteur se déclenche aussi pour nos propres écritures) qui
-    // pouvait re-masquer la page juste après l'avoir révélée.
+    /**
+     * Affiche l'écran de choix de coupure plein page ; les callbacks se
+     * contentent d'écrire le nouveau réglage dans le storage (voir la note sur `run`).
+     * @memberof module:content
+     * @returns {void}
+     */
     function openChooser() {
       stopSafetyTimer();
       NGA.showChooserOverlay(calendar, currentWeekend, cutoff, {
@@ -227,6 +287,14 @@ window.NGAGuard = window.NGAGuard || {};
       });
     }
 
+    /**
+     * Applique la coupure courante à la page actuelle : ouvre le chooser si
+     * aucune coupure n'est configurée, révèle sans filtrage si mode "all" ou
+     * page hors scope, sinon bloque ou masque selon la date de l'article/des
+     * cartes trouvées.
+     * @memberof module:content
+     * @returns {void}
+     */
     function applyCutoff() {
       if (!cutoff) {
         openChooser();
@@ -234,11 +302,13 @@ window.NGAGuard = window.NGAGuard || {};
       }
 
       if (cutoff.mode === "all") {
+        NGA.unmaskAllCards();
         reveal();
         return;
       }
 
       if (OUT_OF_SCOPE_PATH_RE.test(window.location.pathname)) {
+        NGA.unmaskAllCards();
         reveal();
         return;
       }
@@ -248,9 +318,6 @@ window.NGAGuard = window.NGAGuard || {};
         console.log("[NGA] applyCutoff, cutoff =", cutoff, "articleMillis =", articleMillis);
 
         if (articleMillis !== null) {
-          // On connaît la vraie date de CETTE page : on la mémorise dans tous les
-          // cas, qu'elle soit bloquée ou non, pour les prochaines fois où cet
-          // article réapparaîtra ailleurs sans date (ex: en lien "à lire aussi").
           const selfId = articleIdFromHref(window.location.href);
           if (selfId) {
             await NGA.mergeSpoilerCache({ [selfId]: articleMillis });
@@ -262,8 +329,6 @@ window.NGAGuard = window.NGAGuard || {};
             return;
           }
 
-          // Article sûr : on masque quand même les liens "à lire aussi" de son
-          // corps avant de révéler la page.
           await maskArticleLinks(cutoff);
           reveal();
           return;
@@ -278,9 +343,6 @@ window.NGAGuard = window.NGAGuard || {};
 
     applyCutoff();
 
-    // Seule source de vérité pour appliquer un changement de réglage (qu'il
-    // vienne de la popup ou de l'écran de choix sur la page elle-même) :
-    // s'applique immédiatement à cet onglet, sans nécessiter de rechargement.
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
       if (!(NGA.CUTOFF_KEY in changes)) return;

@@ -1,13 +1,20 @@
-// Rendu partagé du sélecteur de coupure (réglage actuel + choix du week-end de
-// référence + liste de ses séances + "Tout afficher"/"Appliquer le filtre").
-// Utilisé à l'identique par l'écran de choix plein page sur le site
-// (overlay.js) et par la popup, pour garantir les mêmes éléments et le même
-// fonctionnement aux deux endroits.
+/**
+ * Rendu partagé du sélecteur de coupure (réglage actuel + choix du week-end
+ * de référence + liste de ses séances + "Tout afficher"/"Filtrer"). Utilisé
+ * à l'identique par l'écran de choix plein page sur le site (overlay.js) et
+ * par la popup.
+ * @module cutoffUI
+ */
 window.NGAGuard = window.NGAGuard || {};
 
 (function (NGA) {
   const STYLE_ID = "nga-guard-cutoffui-style";
 
+  /**
+   * Feuille de style CSS partagée par l'écran de choix plein page et la popup.
+   * @memberof NGA
+   * @constant {string}
+   */
   NGA.CUTOFF_UI_CSS = `
     .nga-cutoffui h1 {
       font-size: 15px;
@@ -98,6 +105,12 @@ window.NGAGuard = window.NGAGuard || {};
     }
   `;
 
+  /**
+   * Injecte NGA.CUTOFF_UI_CSS dans le `<head>` du document (une seule fois).
+   * @memberof NGA
+   * @function ensureCutoffUIStyle
+   * @returns {void}
+   */
   NGA.ensureCutoffUIStyle = function () {
     if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement("style");
@@ -106,15 +119,28 @@ window.NGAGuard = window.NGAGuard || {};
     document.head.appendChild(style);
   };
 
+  /**
+   * Texte affiché dans le bandeau "Réglage actuel" selon l'état du cutoff.
+   * @memberof module:cutoffUI
+   * @param {NGA.Cutoff|null} cutoff - la coupure active, ou null si aucune n'est configurée.
+   * @returns {string} le texte à afficher ("Aucun filtre", "Tout afficher", ou le libellé de la coupure).
+   */
   function currentLabel(cutoff) {
     if (!cutoff) return "Aucun filtre";
     if (cutoff.mode === "all") return "Tout afficher";
     return "Masqué à partir de : " + cutoff.label;
   }
 
-  // Retrouve, pour un week-end donné, la clé de séance correspondant à un
-  // cutoff déjà enregistré (pour pré-sélectionner visuellement la séance
-  // active quand on rouvre l'écran de choix sur ce même week-end).
+  /**
+   * Retrouve, pour un week-end donné, la clé de séance correspondant à un
+   * cutoff déjà enregistré (pré-sélection visuelle en rouvrant l'écran de
+   * choix sur ce même week-end).
+   * @memberof NGA
+   * @function sessionKeyForCutoff
+   * @param {Object|undefined} weekend - le week-end dans lequel chercher la séance (un élément du calendrier).
+   * @param {NGA.Cutoff|null} cutoff - la coupure active.
+   * @returns {string|null} la clé de la séance correspondante, ou null si `cutoff` ne référence pas une séance de ce week-end.
+   */
   NGA.sessionKeyForCutoff = function (weekend, cutoff) {
     if (!weekend || !cutoff || cutoff.mode !== "session" || cutoff.weekendId !== weekend.id) {
       return null;
@@ -125,18 +151,29 @@ window.NGAGuard = window.NGAGuard || {};
     return session ? session.key : null;
   };
 
-  // container : élément DOM entièrement repeuplé à chaque appel.
-  // params = {
-  //   calendar, currentWeekend, cutoff, selectedWeekendId, selectedSessionKey, title,
-  //   onSelectWeekend(weekendId),
-  //   onSelectSession(session),      // sélection en attente, n'applique rien
-  //   onApplyFilter(weekend, session), // clic sur "Filtrer" : applique la sélection en attente
-  //   onShowAll(),
-  // }
-  //
-  // Flux en 2 étapes : choisir un week-end fait apparaître ses séances : cliquer
-  // sur une séance ne fait que la sélectionner (bouton "Filtrer" activé) ; c'est
-  // uniquement le clic sur "Filtrer" qui applique réellement le réglage.
+  /**
+   * Repeuple entièrement `container` avec le sélecteur de coupure (réglage
+   * actuel, choix du week-end de référence, ses séances, "Tout
+   * afficher"/"Filtrer"). Flux en 2 étapes : choisir un week-end affiche ses
+   * séances ; cliquer sur une séance ne fait que la sélectionner (active le
+   * bouton "Filtrer") ; seul le clic sur "Filtrer" applique réellement le
+   * réglage.
+   * @memberof NGA
+   * @function renderCutoffUI
+   * @param {HTMLElement} container - élément DOM entièrement repeuplé à chaque appel.
+   * @param {Object} params
+   * @param {Array<Object>} params.calendar - le calendrier complet (voir NGA.loadCalendar).
+   * @param {Object} params.currentWeekend - le week-end en cours (voir NGA.findCurrentWeekend).
+   * @param {NGA.Cutoff|null} params.cutoff - la coupure actuellement enregistrée.
+   * @param {string} params.selectedWeekendId - identifiant du week-end actuellement affiché dans le sélecteur.
+   * @param {string|null} params.selectedSessionKey - clé de la séance actuellement sélectionnée (en attente d'application), ou null.
+   * @param {string} [params.title] - titre optionnel affiché en haut du bloc.
+   * @param {function(string):void} params.onSelectWeekend - appelé avec l'id du week-end choisi dans le sélecteur.
+   * @param {function(Object):void} params.onSelectSession - appelé avec la séance cliquée ; sélection en attente, n'applique rien.
+   * @param {function(Object, Object):void} params.onApplyFilter - appelé avec (week-end, séance) au clic sur "Filtrer" : applique la sélection en attente.
+   * @param {function():void} params.onShowAll - appelé au clic sur "Tout afficher".
+   * @returns {void}
+   */
   NGA.renderCutoffUI = function (container, params) {
     NGA.ensureCutoffUIStyle();
     container.classList.add("nga-cutoffui");
