@@ -1,4 +1,8 @@
-// Parsing des dates telles qu'affichées par motorsport.nextgen-auto.com (ex: "25 juil. 2026" + "20:05").
+/**
+ * Parsing des dates telles qu'affichées par motorsport.nextgen-auto.com
+ * (ex: "25 juil. 2026" + "20:05").
+ * @module frenchDate
+ */
 window.NGAGuard = window.NGAGuard || {};
 
 (function (NGA) {
@@ -17,6 +21,13 @@ window.NGAGuard = window.NGAGuard || {};
     déc: 12, dec: 12,
   };
 
+  /**
+   * Normalise un nom de mois brut pour le comparer aux clés de FRENCH_MONTHS
+   * (minuscules, sans point, sans espaces superflus).
+   * @memberof module:frenchDate
+   * @param {string} token - nom de mois tel qu'affiché (ex: "juil.").
+   * @returns {string} nom de mois normalisé (ex: "juil").
+   */
   function normalize(token) {
     return token
       .toLowerCase()
@@ -24,8 +35,16 @@ window.NGAGuard = window.NGAGuard || {};
       .trim();
   }
 
-  // dateText: "25 juil. 2026" — timeText: "20:05"
-  // Renvoie { y, m, d, h, mi } (heure locale au site, Europe/Paris) ou null si non reconnu.
+  /**
+   * Interprète une date/heure telles qu'affichées sur une carte de liste du
+   * site (ex: dateText "25 juil. 2026", timeText "20:05").
+   * @memberof NGA
+   * @function parseFrenchListingDate
+   * @param {string} dateText - date affichée (ex: "25 juil. 2026").
+   * @param {string} timeText - heure affichée (ex: "20:05").
+   * @returns {{y:number,m:number,d:number,h:number,mi:number}|null} heure
+   *   locale au site (Europe/Paris) décomposée, ou null si le texte n'est pas reconnu.
+   */
   NGA.parseFrenchListingDate = function (dateText, timeText) {
     if (!dateText || !timeText) return null;
     const dateMatch = /^(\d{1,2})\s+([^\s]+)\s+(\d{4})$/.exec(dateText.trim());

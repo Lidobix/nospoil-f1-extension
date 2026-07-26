@@ -99,6 +99,20 @@ champ séparé pour l'indiquer.
 - Le tableau "programme du week-end" (horaires Essais/Qualifs/Course) n'est
   jamais masqué : ce ne sont que des horaires, pas des résultats.
 
+## Documentation du code
+
+Le code (`src/`, `popup/`) est commenté au format [JSDoc](https://jsdoc.app/)
+(un court bloc au-dessus de chaque fichier et de chaque fonction exportée).
+Pour générer une documentation HTML consultable dans un navigateur :
+
+```
+npm install
+npm run docs
+```
+
+Ouvre ensuite `docs/index.html`. Le dossier `docs/` est régénéré à chaque
+exécution (ignoré par Git, voir `.gitignore`).
+
 ## Debug
 
 La console du site (F12 → Console) affiche des logs préfixés `[NGA]` qui

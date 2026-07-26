@@ -1,0 +1,25 @@
+{
+  "name": "nga-spoiler-guard",
+  "version": "1.0.0",
+  "description": "Extension de navigateur qui masque/bloque les contenus F1 publiés après une séance (essais, qualifications, course) que tu n'as pas encore regardée, sur [motorsport.nextgen-auto.com](https://motorsport.nextgen-auto.com/fr/).",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs": "jsdoc -c jsdoc.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lidobix/nospoil-f1-extension.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Lidobix/nospoil-f1-extension/issues"
+  },
+  "homepage": "https://github.com/Lidobix/nospoil-f1-extension#readme",
+  "devDependencies": {
+    "jsdoc": "^4.0.5"
+  }
+}

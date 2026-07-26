@@ -1,4 +1,8 @@
-// Écran de blocage plein page et masquage de cartes d'actu.
+/**
+ * Écran de blocage plein page (choix de coupure, article masqué) et
+ * masquage/démasquage réversible des cartes d'actu.
+ * @module overlay
+ */
 window.NGAGuard = window.NGAGuard || {};
 
 (function (NGA) {
@@ -6,6 +10,12 @@ window.NGAGuard = window.NGAGuard || {};
   const STYLE_ID = "nga-guard-overlay-style";
   const HOME_URL = "https://motorsport.nextgen-auto.com/fr/";
 
+  /**
+   * Injecte le CSS de l'overlay plein page et du masquage de cartes dans le
+   * `<head>` du document (une seule fois).
+   * @memberof module:overlay
+   * @returns {void}
+   */
   function ensureStyle() {
     if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement("style");
@@ -15,7 +25,7 @@ window.NGAGuard = window.NGAGuard || {};
         position: fixed;
         inset: 0;
         z-index: 2147483647;
-        visibility: visible; /* remonte au-dessus du visibility:hidden posé sur <html> par content.js */
+        visibility: visible;
         background: #10141a;
         color: #f2f2f2;
         display: flex;
@@ -90,6 +100,12 @@ window.NGAGuard = window.NGAGuard || {};
     document.head.appendChild(style);
   }
 
+  /**
+   * Retrouve (ou crée) le conteneur racine de l'overlay plein page, ajouté à
+   * `document.body`.
+   * @memberof module:overlay
+   * @returns {HTMLElement} le conteneur racine de l'overlay.
+   */
   function getRoot() {
     let root = document.getElementById(ROOT_ID);
     if (!root) {
@@ -100,16 +116,30 @@ window.NGAGuard = window.NGAGuard || {};
     return root;
   }
 
+  /**
+   * Retire l'overlay plein page (choix ou article bloqué) s'il est affiché.
+   * @memberof NGA
+   * @function hideOverlay
+   * @returns {void}
+   */
   NGA.hideOverlay = function () {
     const root = document.getElementById(ROOT_ID);
     if (root) root.remove();
   };
 
-  // Même écran (mêmes éléments, même fonctionnement) que la popup de
-  // l'extension : réglage actuel, choix du week-end de référence, ses
-  // séances, "Tout afficher"/"Filtrer" — voir src/cutoffUI.js.
-  // Flux en 2 étapes : choisir une séance ne fait que la sélectionner (le site
-  // ne se charge pas) ; seul le clic sur "Filtrer" applique le réglage.
+  /**
+   * Affiche l'écran de choix de coupure plein page (mêmes éléments, même
+   * fonctionnement que la popup — voir NGA.renderCutoffUI).
+   * @memberof NGA
+   * @function showChooserOverlay
+   * @param {Array<Object>} calendar - le calendrier complet (voir NGA.loadCalendar).
+   * @param {Object} currentWeekend - le week-end en cours (voir NGA.findCurrentWeekend).
+   * @param {NGA.Cutoff|null} cutoff - la coupure actuellement enregistrée.
+   * @param {Object} callbacks
+   * @param {function(Object, Object):(void|Promise<void>)} callbacks.onApplyFilter - appelé avec (week-end, séance) au clic sur "Filtrer".
+   * @param {function():(void|Promise<void>)} callbacks.onShowAll - appelé au clic sur "Tout afficher".
+   * @returns {void}
+   */
   NGA.showChooserOverlay = function (calendar, currentWeekend, cutoff, callbacks) {
     ensureStyle();
     const root = getRoot();
@@ -149,6 +179,16 @@ window.NGAGuard = window.NGAGuard || {};
     renderBox();
   };
 
+  /**
+   * Affiche l'écran plein page "Article masqué", affiché quand la page
+   * ouverte est un article publié après la coupure active.
+   * @memberof NGA
+   * @function showArticleBlockedOverlay
+   * @param {NGA.Cutoff} cutoff - la coupure active (fournit le libellé affiché).
+   * @param {Object} weekendData - le week-end en cours, transmis à `onChangeRequested` via la réouverture du chooser.
+   * @param {function():void} onChangeRequested - appelé au clic sur "Modifier mon réglage".
+   * @returns {void}
+   */
   NGA.showArticleBlockedOverlay = function (cutoff, weekendData, onChangeRequested) {
     ensureStyle();
     const root = getRoot();
@@ -193,18 +233,27 @@ window.NGAGuard = window.NGAGuard || {};
     root.appendChild(box);
   };
 
-  // Empêche l'activation d'un lien masqué au clavier (Entrée sur le lien
-  // focus) : `pointer-events: none` (CSS) bloque déjà la souris mais pas ça.
-  // Référence nommée (et non une fonction anonyme) pour pouvoir la retirer
-  // proprement dans unmaskCard.
+  /**
+   * Empêche l'activation au clavier (Entrée) d'un lien actuellement masqué ;
+   * `pointer-events: none` (CSS) bloque déjà la souris mais pas le clavier.
+   * @memberof module:overlay
+   * @param {MouseEvent} e - événement de clic sur la carte.
+   * @returns {void}
+   */
   function blockClickIfMasked(e) {
     if (e.currentTarget.classList.contains("nga-guard-masked")) e.preventDefault();
   }
 
-  // Un réglage plus permissif (ex: passage à "Tout afficher", ou choix d'une
-  // séance plus tardive) doit pouvoir démasquer une carte déjà masquée par un
-  // réglage précédent, sans recharger la page : voir NGA.unmaskCard /
-  // NGA.unmaskAllCards.
+  /**
+   * Masque une carte d'article (retire son href, ajoute un libellé visuel) ;
+   * réversible via NGA.unmaskCard. Sans effet si déjà masquée (le libellé
+   * est alors juste rafraîchi).
+   * @memberof NGA
+   * @function maskCard
+   * @param {HTMLElement} cardEl - l'élément `<a>` de la carte à masquer.
+   * @param {string} label - libellé de la coupure, affiché dans le message "Masqué — publié après …".
+   * @returns {void}
+   */
   NGA.maskCard = function (cardEl, label) {
     ensureStyle();
     if (!cardEl.classList.contains("nga-guard-masked")) {
@@ -220,11 +269,18 @@ window.NGAGuard = window.NGAGuard || {};
       cardEl.appendChild(marker);
       return;
     }
-    // Déjà masquée (ex: par un précédent passage) : juste rafraîchir le libellé.
     const marker = cardEl.querySelector(".nga-guard-mask-label");
     if (marker) marker.textContent = "Masqué — publié après " + label;
   };
 
+  /**
+   * Annule NGA.maskCard : restaure le href original et retire le libellé.
+   * Sans effet si la carte n'est pas masquée.
+   * @memberof NGA
+   * @function unmaskCard
+   * @param {HTMLElement} cardEl - l'élément `<a>` de la carte à démasquer.
+   * @returns {void}
+   */
   NGA.unmaskCard = function (cardEl) {
     if (!cardEl.classList.contains("nga-guard-masked")) return;
     cardEl.classList.remove("nga-guard-masked");
@@ -237,6 +293,12 @@ window.NGAGuard = window.NGAGuard || {};
     if (marker) marker.remove();
   };
 
+  /**
+   * Démasque toutes les cartes actuellement masquées sur la page (voir NGA.unmaskCard).
+   * @memberof NGA
+   * @function unmaskAllCards
+   * @returns {void}
+   */
   NGA.unmaskAllCards = function () {
     document.querySelectorAll(".nga-guard-masked").forEach((el) => NGA.unmaskCard(el));
   };

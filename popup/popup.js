@@ -1,11 +1,22 @@
-// Logique de la popup : mêmes éléments et même fonctionnement que l'écran de
-// choix affiché sur le site (voir src/cutoffUI.js et src/overlay.js).
+/**
+ * Logique de la popup : mêmes éléments et même fonctionnement que l'écran de
+ * choix affiché sur le site (voir src/cutoffUI.js et src/overlay.js).
+ * @module popup
+ */
 (function (NGA) {
   const app = document.getElementById("app");
   let calendar = [];
   let selectedWeekendId = null;
   let selectedSessionKey = null;
 
+  /**
+   * Recharge le calendrier si besoin puis (re)affiche l'intégralité de la
+   * popup à partir de l'état courant (calendrier, coupure enregistrée,
+   * week-end/séance sélectionnés). Appelée après chaque action utilisateur
+   * pour refléter le nouvel état.
+   * @memberof module:popup
+   * @returns {Promise<void>}
+   */
   async function render() {
     if (!calendar.length) {
       try {
