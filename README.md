@@ -1,4 +1,4 @@
-# NGA Spoiler Guard
+# 🚨Extension noSpoil F1 news 🏗️🚧 En construction 🔧👷‍♂️
 
 Extension de navigateur qui masque/bloque les contenus F1 publiés après une
 séance (essais, qualifications, course) que tu n'as pas encore regardée, sur
@@ -15,12 +15,13 @@ privilégie Chrome pour valider.
 
 ## Installation en local (extension non empaquetée)
 
-1. Ouvre `chrome://extensions` dans Chrome.
-2. Active le **mode développeur** (interrupteur en haut à droite).
-3. Clique sur **"Charger l'extension non empaquetée"**.
-4. Sélectionne le dossier racine de ce projet (celui qui contient
+1. Clone le repo sur ta machine: https://github.com/Lidobix/nospoil-f1-extension.git
+2. Ouvre `chrome://extensions` dans Chrome.
+3. Active le **mode développeur** (interrupteur en haut à droite).
+4. Clique sur **"Charger l'extension non empaquetée"**.
+5. Sélectionne le dossier racine de ce projet (celui qui contient
    `manifest.json`).
-5. L'extension "NGA Spoiler Guard" apparaît dans la liste et dans la barre
+6. L'extension "NGA Spoiler Guard" apparaît dans la liste et dans la barre
    d'outils.
 
 Après toute modification du code, reviens sur `chrome://extensions` et clique
@@ -31,8 +32,8 @@ sur l'icône de rechargement de l'extension, puis recharge la page du site
 
 1. Va sur `https://motorsport.nextgen-auto.com/fr/` (ou toute page du site).
 2. Si aucun réglage n'a encore été choisi, un écran plein page s'affiche et
-   demande, pour le week-end en cours : *"Je n'ai pas encore vu : Essais
-   Libres 1 / ... / Qualifications / Course"* — choisis la première séance
+   demande, pour le week-end en cours : _"Je n'ai pas encore vu : Essais
+   Libres 1 / ... / Qualifications / Course"_ — choisis la première séance
    que tu n'as pas encore regardée, ou "Tout afficher" pour désactiver le
    filtre.
 3. Une fois le choix fait :
@@ -50,30 +51,6 @@ sur l'icône de rechargement de l'extension, puis recharge la page du site
    propose aussi un sélecteur pour choisir **n'importe quel week-end déjà
    disputé** (pas seulement celui en cours) comme référence de coupure —
    utile si tu es en retard de plusieurs Grands Prix.
-
-## Mettre à jour le calendrier
-
-Le calendrier est codé en dur dans [`data/calendar.json`](data/calendar.json),
-un tableau chronologique d'un objet par week-end. Avant chaque nouveau Grand
-Prix, **ajoute une entrée à la fin du tableau** (ne remplace pas le contenu
-existant, l'historique sert à la sélection d'un week-end antérieur) avec les
-horaires officiels (tous en UTC, suffixe `Z`) :
-
-```json
-{
-  "id": "2026-nom-du-gp",
-  "name": "Grand Prix de ... 2026",
-  "circuit": "...",
-  "season": 2026,
-  "sessions": [
-    { "key": "fp1", "label": "Essais Libres 1", "start_utc": "..." },
-    { "key": "fp2", "label": "Essais Libres 2", "start_utc": "..." },
-    { "key": "fp3", "label": "Essais Libres 3", "start_utc": "..." },
-    { "key": "quali", "label": "Qualifications", "start_utc": "..." },
-    { "key": "race", "label": "Course", "start_utc": "..." }
-  ]
-}
-```
 
 Pour un week-end sprint, remplace `fp2`/`fp3` par `sprint_quali`/`sprint`
 (voir les entrées Chine/Miami/Canada/Grande-Bretagne dans le fichier comme
