@@ -1,0 +1,62 @@
+name: Structure canary
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # tous les lundis 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - run: npm run canary
+
+      - name: Ouvrir/mettre à jour une issue si le canari a échoué
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = "🚨 Canari de structure : le site a peut-être changé";
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "canary",
+            });
+
+            if (existing.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing[0].number,
+                body: `Nouvel échec le ${new Date().toISOString()} — voir le run : ${runUrl}`,
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                labels: ["canary"],
+                body: [
+                  "Le workflow \"Structure canary\" a échoué : la structure DOM de",
+                  "motorsport.nextgen-auto.com attendue par l'extension (src/content.js)",
+                  "ne correspond plus à ce qui a été trouvé en live.",
+                  "",
+                  `Voir le run : ${runUrl}`,
+                ].join("\n"),
+              });
+            }

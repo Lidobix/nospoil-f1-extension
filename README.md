@@ -99,6 +99,41 @@ champ séparé pour l'indiquer.
 - Le tableau "programme du week-end" (horaires Essais/Qualifs/Course) n'est
   jamais masqué : ce ne sont que des horaires, pas des résultats.
 
+## Canari de structure (CI)
+
+L'extension dépend d'une structure DOM précise du site (motif d'URL des
+articles, position des dates dans les cartes de liste, balises `og:type` /
+`og:article:published_time`...). Si nextgen-auto change sa mise en page, ces
+sélecteurs peuvent cesser de fonctionner silencieusement. [`scripts/canary.js`](scripts/canary.js)
+sert de garde-fou indépendant : il va chercher la page d'accueil (et un
+article) en live, réutilise le vrai code de parsing (`src/frenchDate.js`,
+`src/zonedTime.js`, `src/weekend.js`, via `jsdom`) et vérifie :
+
+- qu'un nombre minimum de liens d'article est trouvé sur la home
+  (constante `MIN_CARDS`, actuellement `5`) ;
+- qu'une proportion minimum de ces cartes a une date lisible (constante
+  `MIN_DATED_RATIO`, actuellement `0.5`) ;
+- que les métadonnées `og:type` / `og:article:published_time` sont présentes
+  et valides sur une page article.
+
+**Ces deux seuils sont des valeurs de départ arbitraires, à ajuster** une
+fois qu'on aura du recul sur le trafic réel du site (jours creux, périodes
+sans actu F1...), pour limiter les faux positifs sans devenir aveugle à une
+vraie régression de structure.
+
+Exécution locale :
+
+```
+npm install
+npm run canary
+```
+
+Le workflow [`.github/workflows/canary.yml`](.github/workflows/canary.yml)
+l'exécute automatiquement chaque lundi (et à la demande depuis l'onglet
+*Actions* de GitHub) ; en cas d'échec, une issue GitHub taguée `canary` est
+créée (ou mise à jour si elle existe déjà) pour signaler qu'un changement de
+structure du site est probable.
+
 ## Documentation du code
 
 Le code (`src/`, `popup/`) est commenté au format [JSDoc](https://jsdoc.app/)
