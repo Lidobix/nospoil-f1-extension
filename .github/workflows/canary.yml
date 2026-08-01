@@ -1,5 +1,9 @@
 name: Structure canary
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  
 on:
   schedule:
     - cron: "0 6 * * 1" # tous les lundis 06:00 UTC
@@ -17,7 +21,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - run: npm ci
 
