@@ -41,11 +41,20 @@ function ok(msg) {
 
 async function fetchDocument(url) {
   const res = await fetch(url, {
-    headers: { "User-Agent": "nga-spoiler-guard-canary (+https://github.com/Lidobix/nospoil-f1-extension)" },
+    headers: {
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 nga-spoiler-guard-canary/1.0 (+https://github.com/Lidobix/nospoil-f1-extension)",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "fr-FR,fr;q=0.9",
+    },
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status} pour ${url}`);
   const html = await res.text();
-  return new JSDOM(html, { url }).window.document;
+  console.log(`[NGA canary] ${url} -> HTTP ${res.status}, ${html.length} caractère(s) reçus`);
+  if (!res.ok) {
+    console.error("[NGA canary] Extrait de la réponse (diagnostic) :\n", html.slice(0, 500));
+    throw new Error(`HTTP ${res.status} pour ${url}`);
+  }
+  return { document: new JSDOM(html, { url }).window.document, html };
 }
 
 function findCards(document) {
@@ -69,14 +78,15 @@ function cardPublishedMillis(cardEl) {
 
 async function main() {
   console.log("[NGA canary] GET", HOME_URL);
-  const document = await fetchDocument(HOME_URL);
+  const { document, html } = await fetchDocument(HOME_URL);
 
   const cards = findCards(document);
   console.log(`[NGA canary] ${cards.length} lien(s) d'article trouvé(s) sur la page d'accueil`);
   if (cards.length < MIN_CARDS) {
     fail(
-      `Seulement ${cards.length} lien(s) d'article trouvé(s) sur la home (attendu >= ${MIN_CARDS}) — le motif d'URL des articles ou la structure des cartes a peut-être changé.`
+      `Seulement ${cards.length} lien(s) d'article trouvé(s) sur la home (attendu >= ${MIN_CARDS}) — le motif d'URL des articles ou la structure des cartes a peut-être changé (ou la réponse reçue n'est pas la vraie page, voir extrait ci-dessous).`
     );
+    console.error("[NGA canary] Extrait de la réponse reçue (diagnostic) :\n", html.slice(0, 500));
   } else {
     ok(`${cards.length} lien(s) d'article trouvé(s)`);
   }
@@ -107,7 +117,7 @@ async function main() {
   } else {
     const articleUrl = new URL(articleHref, HOME_URL).toString();
     console.log("[NGA canary] GET", articleUrl);
-    const articleDoc = await fetchDocument(articleUrl);
+    const { document: articleDoc } = await fetchDocument(articleUrl);
     const typeMeta = articleDoc.querySelector('meta[property="og:type"]');
     const publishedMeta = articleDoc.querySelector('meta[property="og:article:published_time"]');
     if (!typeMeta || typeMeta.getAttribute("content") !== "article") {
