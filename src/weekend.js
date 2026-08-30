@@ -10,12 +10,30 @@ window.NGAGuard = window.NGAGuard || {};
   NGA.SITE_TIMEZONE = "Europe/Paris";
 
   /**
-   * Charge le calendrier complet des week-ends depuis data/calendar.json.
+   * Clé de cache (`chrome.storage.local`) écrite par le service worker
+   * (src/background.js) lors de la synchronisation périodique du calendrier
+   * publié. Doit rester synchronisée avec CALENDAR_CACHE_KEY côté background.
+   * @memberof NGA
+   * @constant {string}
+   */
+  NGA.CALENDAR_CACHE_KEY = "nga_calendar_cache";
+
+  /**
+   * Charge le calendrier complet des week-ends : le cache synchronisé par le
+   * service worker en priorité, ou data/calendar.json embarqué en repli
+   * (premier lancement avant toute synchro, ou synchro jamais aboutie).
    * @memberof NGA
    * @function loadCalendar
    * @returns {Promise<Array<Object>>} le calendrier, dans l'ordre chronologique.
    */
   NGA.loadCalendar = async function () {
+    const cached = await new Promise((resolve) => {
+      chrome.storage.local.get([NGA.CALENDAR_CACHE_KEY], (res) => resolve(res[NGA.CALENDAR_CACHE_KEY]));
+    });
+    if (cached && Array.isArray(cached.calendar) && cached.calendar.length) {
+      return cached.calendar;
+    }
+
     const url = chrome.runtime.getURL("data/calendar.json");
     const res = await fetch(url);
     return res.json();
