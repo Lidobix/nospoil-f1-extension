@@ -3,7 +3,11 @@
   "name": "NGA Spoiler Guard",
   "version": "1.0.0",
   "description": "Masque les articles F1 publiés après une séance que vous n'avez pas encore regardée sur motorsport.nextgen-auto.com.",
-  "permissions": ["storage"],
+  "permissions": ["storage", "alarms"],
+  "host_permissions": ["http://localhost:8100/*"],
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "action": {
     "default_popup": "popup/popup.html",
     "default_title": "NGA Spoiler Guard"
